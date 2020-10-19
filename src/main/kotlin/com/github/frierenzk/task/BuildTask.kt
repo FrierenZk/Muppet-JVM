@@ -81,7 +81,7 @@ class BuildTask {
                 if (it.contains("Rev")) updated = it != rev
                 onPush?.invoke(it)
             }
-            return if (updated) TaskStatus.Finished
+            return if (!updated) TaskStatus.Finished
             else TaskStatus.Working
         }
         return TaskStatus.Working
