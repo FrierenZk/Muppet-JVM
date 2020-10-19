@@ -5,6 +5,7 @@ import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import kotlinx.coroutines.*
 import com.github.frierenzk.task.PoolEvent
+import com.github.frierenzk.ticker.TickerEvent
 import java.util.*
 
 @ObsoleteCoroutinesApi
@@ -41,6 +42,7 @@ class InputListener:DispatcherBase() {
                 val args = list.getOrNull(1)
                 if (args is String) raiseEvent(PoolEvent.StopTask, args)
             }
+            "resetTicker" -> raiseEvent(TickerEvent.Reset, 0)
         }
     }
 

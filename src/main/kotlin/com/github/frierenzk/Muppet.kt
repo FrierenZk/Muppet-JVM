@@ -7,6 +7,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import com.github.frierenzk.server.Linkage
 import com.github.frierenzk.task.TaskPoolManager
+import com.github.frierenzk.ticker.TaskTicker
 import kotlin.system.exitProcess
 
 @ObsoleteCoroutinesApi
@@ -31,6 +32,7 @@ class Muppet {
             launch { handlerCollections.add(TaskPoolManager()) }
             launch { handlerCollections.add(Linkage()) }
             launch { handlerCollections.add(InputListener()) }
+            launch { handlerCollections.add(TaskTicker()) }
         }
 
         private fun runDispatcher() = runBlocking {

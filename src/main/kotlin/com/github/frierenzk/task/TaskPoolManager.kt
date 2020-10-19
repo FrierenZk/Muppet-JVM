@@ -86,9 +86,20 @@ class TaskPoolManager: DispatcherBase() {
     }
 
     private fun createNewTask(arg: Any) {
+        var uuid: UUID? = null
+        var paras: HashMap<*, *>? = null
         val name = when (arg) {
             is String -> arg
-            is Pair<*, *> -> arg.second as String
+            is Pair<*, *> -> {
+                val (first, second) = arg
+                if (first is UUID && second is String) {
+                    uuid = first
+                    second
+                } else if (first is String && second is HashMap<*, *>) {
+                    paras = second
+                    first
+                } else ""
+            }
             else -> ""
         }
         val conf = configLock.read {
@@ -100,6 +111,10 @@ class TaskPoolManager: DispatcherBase() {
             if (taskPool.contains(name)) {
                 printlnWithPushLogs(name, "Target task duplicated")
             } else {
+                if (paras is HashMap<*, *>) paras.forEach { (key, value) ->
+                    if (key is String && value != null)
+                        conf.extraParas[key] = value
+                }
                 taskPool[name] = BuildTask().apply {
                     create(conf)
                     onPush = fun(line: String) {
@@ -111,7 +126,8 @@ class TaskPoolManager: DispatcherBase() {
                 }
                 runBlocking {
                     checkTrigger.send("")
-                    if (arg is Pair<*, *>) raiseEvent(ServerEvent.AddTask, arg)
+                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, arg)
+                    if (paras is HashMap<*, *>) printlnWithPushLogs(name, "timer Triggered")
                 }
             }
         } else {
@@ -169,9 +185,7 @@ class TaskPoolManager: DispatcherBase() {
 
     private fun loadConfig() {
         configLock.write {
-            val builder = GsonBuilder()
-            builder.setPrettyPrinting()
-            val gson = builder.create() as Gson
+            val gson = GsonBuilder().setPrettyPrinting().create() as Gson
             val file = File("build_list.json").apply { if (!this.exists()) this.createNewFile() }
             val reader = JsonReader(file.reader())
             val root = JsonParser.parseReader(reader) ?: null

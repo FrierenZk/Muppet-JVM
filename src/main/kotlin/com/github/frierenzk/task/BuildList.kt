@@ -90,6 +90,9 @@ class BuildList {
                             profile = "catv_heilongjiang_white_hgu_gpon_nowifi_nocable_novoice_nousb"
                             sourcePath = "\$base/\$category/heilongjian-2.0"
                             uploadPath = "\$base/\$category/heilongjian-2.0"
+                        },
+                        "shanxi-1.0" to BuildConfig().apply {
+                            profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                         }
                 ),
                 "branches" to sortedMapOf(
@@ -175,6 +178,10 @@ class BuildList {
                             uploadPath = "\$base/\$category"
                         },
                         "wifi6_new2" to BuildConfig().apply {
+                            profile = "CT_EN7561D_LE_7915D_AP_demo"
+                            uploadPath = "\$base/\$category"
+                        },
+                        "wifi6_new4" to BuildConfig().apply {
                             profile = "CT_EN7561D_LE_7915D_AP_demo"
                             uploadPath = "\$base/\$category"
                         }
