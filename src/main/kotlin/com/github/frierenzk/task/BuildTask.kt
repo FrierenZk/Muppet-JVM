@@ -28,13 +28,17 @@ class BuildTask {
         try {
             if (status == TaskStatus.Waiting) status = TaskStatus.Working
             this.scope.launch(context) {
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping)
+                if (status != TaskStatus.Error && status != TaskStatus.Stopping
+                        && status != TaskStatus.Finished)
                     status = svnCheck()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping)
+                if (status != TaskStatus.Error && status != TaskStatus.Stopping
+                        && status != TaskStatus.Finished)
                     status = imageClean()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping)
+                if (status != TaskStatus.Error && status != TaskStatus.Stopping
+                        && status != TaskStatus.Finished)
                     status = imageBuild()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping)
+                if (status != TaskStatus.Error && status != TaskStatus.Stopping
+                        && status != TaskStatus.Finished)
                     status = imageUpload()
                 if (status != TaskStatus.Error && status != TaskStatus.Stopping) {
                     status = TaskStatus.Finished.also {
@@ -58,11 +62,11 @@ class BuildTask {
                 config.extraParas["update"] == false)
             return TaskStatus.Working
         onPush?.invoke("Check svn update")
-        val command = listOf("svn", "info", config.getFullSvnBasePath(), "|", "grep", "\"Last Changed Rev\"")
+        val command = listOf("svn", "info", config.getFullSvnBasePath())
         val info = ShellUtils().apply { exec(command) }
         var rev = ""
         info.inputBuffer?.forEachLine {
-            if (it.contains("Rev")) rev = it
+            if (it.contains("Revision:")) rev = it
             onPush?.invoke(it)
         }
         if (rev.isBlank()) {
@@ -78,11 +82,12 @@ class BuildTask {
             info.exec(command)
             var updated = false
             info.inputBuffer?.forEachLine {
-                if (it.contains("Rev")) updated = it != rev
+                if (it.contains("Revision:")) updated = (it != rev)
                 onPush?.invoke(it)
             }
-            return if (!updated) TaskStatus.Finished
-            else TaskStatus.Working
+            println("updated = $updated rev = $rev")
+            return if (updated) TaskStatus.Working
+            else TaskStatus.Finished
         }
         return TaskStatus.Working
     }
