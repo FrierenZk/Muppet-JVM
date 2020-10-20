@@ -93,6 +93,9 @@ class BuildList {
                         },
                         "shanxi-1.0" to BuildConfig().apply {
                             profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                        },
+                        "hubei-1.0" to BuildConfig().apply {
+                            profile = "catv_hubeiguangdian_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                         }
                 ),
                 "branches" to sortedMapOf(
@@ -106,6 +109,9 @@ class BuildList {
                         "tvecuador" to BuildConfig().apply {
                             profile = "catv_tvecuador_nocolor_hgu_xpon_wifi_cable_voice_usb"
                             projectDir = "FDT_ecuador"
+                        },
+                        "FDT_SiJie" to BuildConfig().apply {
+                            profile = "catv_standard_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                         }
                 ),
                 "7528" to sortedMapOf(
