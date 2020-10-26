@@ -28,7 +28,7 @@ public class ShellUtils {
         inputBuffer = new BufferedReader(new InputStreamReader(process.getInputStream()));
         errorBuffer = new BufferedReader(new InputStreamReader(process.getErrorStream()));
     }
-    
+
     public void execCommands(List<String> commands) throws IOException {
         var processBuilder = new ProcessBuilder("sh");
         process = processBuilder.start();
@@ -60,7 +60,17 @@ public class ShellUtils {
 
     public int terminate() {
         if (process == null) return -1;
-        process.destroy();
+        var pid = Long.toString(process.pid());
+        try {
+            while (!pid.isBlank()) {
+                var p = Runtime.getRuntime().exec("pgrep -P " + pid);
+                var reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                var subPid = reader.readLine();
+                Runtime.getRuntime().exec("kill -9 " + pid);
+                pid = subPid;
+            }
+        } catch (Exception ignored) {
+        }
         try {
             process.wait(3000);
         } catch (Exception ignored) {
