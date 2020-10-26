@@ -76,6 +76,7 @@ class TaskPoolManager: DispatcherBase() {
             }
         }
         remove.forEach {
+            println("removing $it")
             taskPool.remove(it)
             count--
         }
@@ -108,7 +109,7 @@ class TaskPoolManager: DispatcherBase() {
             else null
         }
         if (conf is BuildConfig) {
-            if (taskPool.contains(name)) {
+            if (taskPool.containsKey(name)) {
                 printlnWithPushLogs(name, "Target task duplicated")
             } else {
                 if (paras is HashMap<*, *>) paras.forEach { (key, value) ->
@@ -141,7 +142,7 @@ class TaskPoolManager: DispatcherBase() {
             is Pair<*, *> -> arg.second as String
             else -> ""
         }
-        if (taskPool.contains(name)) {
+        if (taskPool.containsKey(name)) {
             taskPool[name]?.stop()
             if (arg is Pair<*, *>) raiseEvent(ServerEvent.StopTask, arg)
         } else {
