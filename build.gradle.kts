@@ -3,7 +3,9 @@ plugins {
 }
 
 group = "com.github.frierenzk"
-version = "0.1.0"
+version = "0.1.0".let {
+    "$it${if (getGitID().isBlank()) "" else "-${getGitID()}"}"
+}
 
 repositories {
     mavenCentral()
@@ -42,4 +44,9 @@ tasks {
             from(zipTree(file.absoluteFile))
         }
     }
+}
+
+fun getGitID():String {
+    val p = Runtime.getRuntime().exec("git rev-parse --short HEAD")
+    return p?.inputStream?.bufferedReader()?.readLine() ?: ""
 }
