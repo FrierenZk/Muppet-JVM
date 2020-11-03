@@ -54,6 +54,9 @@ class BuildList {
                         },
                         "hubeiguangdian" to BuildConfig().apply {
                             profile = "catv_hubeiguangdian_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                        },
+                        "hunanshaoyang" to BuildConfig().apply {
+                            profile = "catv_hunanshaoyang_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                         }
                 ),
                 "tags" to sortedMapOf(
@@ -112,6 +115,9 @@ class BuildList {
                         },
                         "FDT_SiJie" to BuildConfig().apply {
                             profile = "catv_standard_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                        },
+						"FDT_dongyan_uGrid" to BuildConfig().apply {
+                            profile = "catv_dongyanUgrid_black_hgu_gpon_wifi_cable_novoice_usb"
                         }
                 ),
                 "7528" to sortedMapOf(
@@ -187,8 +193,16 @@ class BuildList {
                             profile = "CT_EN7561D_LE_7915D_AP_demo"
                             uploadPath = "\$base/\$category"
                         },
+                        "wifi6_new2_jianhua" to BuildConfig().apply {
+                            profile = "CT_EN7561D_LE_7915D_AP_demo_jianhua"
+                            uploadPath = "\$base/\$category"
+                        },
                         "wifi6_new4" to BuildConfig().apply {
                             profile = "CT_EN7561D_LE_7915D_AP_demo"
+                            uploadPath = "\$base/\$category"
+                        },
+						"wifi6_new4_jianhua" to BuildConfig().apply {
+                            profile = "CT_EN7561D_LE_7915D_AP_demo_jianhua"
                             uploadPath = "\$base/\$category"
                         }
                 )
