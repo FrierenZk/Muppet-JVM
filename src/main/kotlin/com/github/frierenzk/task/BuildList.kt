@@ -57,6 +57,12 @@ class BuildList {
                         },
                         "hunanshaoyang" to BuildConfig().apply {
                             profile = "catv_hunanshaoyang_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                        },
+						"neimeng3in1" to BuildConfig().apply {
+							profile = "catv_neimeng3in1_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+						},
+						"shanxijinmei" to BuildConfig().apply {
+                            profile = "catv_shanxijinmei_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                         }
                 ),
                 "tags" to sortedMapOf(
@@ -99,6 +105,9 @@ class BuildList {
                         },
                         "hubei-1.0" to BuildConfig().apply {
                             profile = "catv_hubeiguangdian_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                        },
+						"changguang-1.0" to BuildConfig().apply {
+                            profile = "catv_changguang_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
                         }
                 ),
                 "branches" to sortedMapOf(
