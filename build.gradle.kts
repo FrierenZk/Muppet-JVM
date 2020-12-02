@@ -1,10 +1,10 @@
 plugins {
-    kotlin("jvm") version "1.4.10"
+    kotlin("jvm") version "1.4.20"
 }
 
 group = "com.github.frierenzk"
 version = "0.1.1".let {
-    "$it${if (getGitID().isBlank()) "" else "-${getGitID()}"}"
+    "$it${if (getGitID().isBlank()) "unknown" else "-${getGitID()}"}"
 }
 
 repositories {
@@ -13,7 +13,8 @@ repositories {
 
 dependencies {
     implementation(kotlin("stdlib"))
-    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.3.9")
+    implementation(kotlin("reflect"))
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.4.2")
 
     implementation("com.corundumstudio.socketio","netty-socketio","1.7.18")
     implementation("com.google.code.gson","gson","2.8.6")
