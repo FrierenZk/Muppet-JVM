@@ -1,8 +1,38 @@
 package com.github.frierenzk.task
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import com.google.gson.stream.JsonWriter
 import java.nio.file.Path
 
 class BuildConfig {
+    companion object {
+        private val map = sortedMapOf("version" to "0.1.2")
+        private val uploadAddress by lazy { map["uploadAddress"]!! }
+        fun loadBuildConfigs() {
+            val file = Path.of("build_configs.json").toFile()
+
+            if (!file.exists()) {
+                file.createNewFile()
+                file.writeBytes(GsonBuilder().setPrettyPrinting().create()!!.toJson(map)!!.toByteArray())
+                throw IllegalArgumentException("Can not read upload server address from build_configs.json")
+            }
+            var rewrite = false
+            JsonParser.parseReader(file.reader()).asJsonObject!!.entrySet()!!.filterNotNull()
+                    .filterNot { it.key.isBlank() }.forEach { (key, element) ->
+                        if (key == "version" && map[key] != element.asString) rewrite = true
+                        map[key] = element.asString
+                    }
+            if (!map.containsKey("uploadAddress")) throw IllegalArgumentException("Can not read upload server address from build_configs.json")
+            if (rewrite) {
+                val writer = file.bufferedWriter()
+                writer.write(GsonBuilder().setPrettyPrinting().create()!!.toJson(map)!!)
+                writer.flush()
+                writer.close()
+            }
+        }
+    }
+
     lateinit var name: String
     lateinit var category: String
     lateinit var profile: String
@@ -29,15 +59,15 @@ class BuildConfig {
     }
 
     fun getFullUploadPath(): String {
-        val cat = when(category) {
+        val cat = when (category) {
             "tags" -> "tags_version"
             "branches" -> "branches_version"
             else -> category
         }
         val replaceRule: HashMap<String, String> = hashMapOf(
-                "\$default" to "buildmanager@172.18.36.250:/volume1/version/$cat/${projectDir ?: name}",
-                "\$base" to "buildmanager@172.18.36.250:/volume1/version",
-                "\$version" to "buildmanager@172.18.36.250:/volume1/version",
+                "\$default" to "buildmanager@$uploadAddress:/volume1/version/$cat/${projectDir ?: name}",
+                "\$base" to "buildmanager@$uploadAddress:/volume1/version",
+                "\$version" to "buildmanager@$uploadAddress:/volume1/version",
                 "\$category" to cat,
                 "\$name" to (projectDir ?: name),
                 "\$projectDir" to (projectDir ?: name)

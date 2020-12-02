@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.github.frierenzk"
-version = "0.1.1".let {
+version = "0.1.2".let {
     "$it${if (getGitID().isBlank()) "unknown" else "-${getGitID()}"}"
 }
 
