@@ -39,7 +39,7 @@ tasks {
     }
     jar {
         manifest {
-            attributes["Main-Class"] = "com.github.frierenzk.Muppet"
+            attributes["Main-Class"] = "com.github.frierenzk.MuppetKt"
         }
         configurations["compileClasspath"].forEach { file: File ->
             from(zipTree(file.absoluteFile))
