@@ -39,9 +39,11 @@ sealed class SVNTask {
     private class UpdateTask(override val uri: URI) : SVNTask() {
         override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", uri.path)) }
-            val rev = info.inputBuffer.lineSequence().toList().takeIf { it.isNotEmpty() }
+            val list = info.inputBuffer.lineSequence().toList()
+            val rev = list.toList().takeIf { it.isNotEmpty() }
                 ?.first { it.startsWith("Last Changed Rev:") } ?: ""
-            info.errorBuffer.forEachLine { println(it) }
+            outBufferedReader = BufferedReader(StringReader(list.joinToString()))
+            errorBufferedReader = info.errorBuffer
             return rev
         }
 
@@ -61,9 +63,11 @@ sealed class SVNTask {
 
         override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", svnPath)) }
-            val rev = info.inputBuffer.lineSequence().toList().takeIf { it.isNotEmpty() }
+            val list = info.inputBuffer.lineSequence().toList()
+            val rev = list.toList().takeIf { it.isNotEmpty() }
                 ?.first { it.startsWith("Last Changed Rev:") } ?: ""
-            info.errorBuffer.forEachLine { println(it) }
+            outBufferedReader = BufferedReader(StringReader(list.joinToString()))
+            errorBufferedReader = info.errorBuffer
             return rev
         }
     }

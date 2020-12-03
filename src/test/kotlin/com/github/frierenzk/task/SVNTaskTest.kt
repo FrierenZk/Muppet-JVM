@@ -41,6 +41,12 @@ internal class SVNTaskTest {
         println("path is ${SVNTask.isSVNPath(svnPath)}")
         val task = SVNTask.buildSVNCheckOutTask(File("build/virtual").toURI(), svnPath)
         println(task.info().isBlank())
+        task.outBufferedReader.forEachLine {
+            println(it)
+        }
+        task.errorBufferedReader.forEachLine {
+            println(it)
+        }
         task.checkOut()
         task.outBufferedReader.forEachLine {
             println(it)
