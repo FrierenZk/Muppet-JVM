@@ -1,12 +1,14 @@
 package com.github.frierenzk.task
 
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Order
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestMethodOrder
+import org.junit.jupiter.api.*
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class BuildConfigTest {
+    @BeforeEach
+    internal fun setUp() {
+        BuildConfig.loadBuildConfigs()
+    }
+
     private val buildConfig by lazy {
         BuildConfig().apply {
             this.name = "testName"
