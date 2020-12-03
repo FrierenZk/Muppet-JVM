@@ -12,7 +12,7 @@ internal class SVNTaskTest {
     @Order(1)
     internal fun infoTest() {
         val task = SVNTask.buildSVNTask(uri)
-        task.info()
+        println(task.info().isBlank())
         task.outBufferedReader.forEachLine {
             println(it)
         }
@@ -40,6 +40,7 @@ internal class SVNTaskTest {
         val svnPath = "svn://noway"
         println("path is ${SVNTask.isSVNPath(svnPath)}")
         val task = SVNTask.buildSVNCheckOutTask(File("build/virtual").toURI(), svnPath)
+        println(task.info().isBlank())
         task.checkOut()
         task.outBufferedReader.forEachLine {
             println(it)

@@ -20,27 +20,29 @@ sealed class SVNTask {
         fun isSVNPath(svn: String) = svn.startsWith("svn://")
     }
 
-    protected open val uri by lazy { URI("") }
-    protected open val svnPath by lazy { "" }
+    protected open val uri by lazy { URI("").also { throw IllegalArgumentException("Not Implemented") } }
+    protected open val svnPath by lazy { "".also { throw IllegalArgumentException("Not Implemented") } }
 
     var outBufferedReader = BufferedReader(StringReader(""))
         protected set
     var errorBufferedReader = BufferedReader(StringReader(""))
         protected set
 
-    protected fun notImplemented() {
+    private fun notImplemented() {
         errorBufferedReader = BufferedReader(StringReader("this function current has not Implemented"))
     }
 
-    open fun info() = notImplemented()
+    open fun info(): String = notImplemented().let { "" }
     open fun update() = notImplemented()
     open fun checkOut() = notImplemented()
 
     private class UpdateTask(override val uri: URI) : SVNTask() {
-        override fun info() {
+        override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", uri.path)) }
-            outBufferedReader = info.inputBuffer
-            errorBufferedReader = info.errorBuffer
+            val rev = info.inputBuffer.lineSequence().toList().takeIf { it.isNotEmpty() }
+                ?.first { it.startsWith("Last Changed Rev:") } ?: ""
+            info.errorBuffer.forEachLine { println(it) }
+            return rev
         }
 
         override fun update() {
@@ -55,6 +57,14 @@ sealed class SVNTask {
             val checkOut = ShellUtils().apply { exec(listOf("svn", "co", svnPath, uri.path)) }
             outBufferedReader = checkOut.inputBuffer
             errorBufferedReader = checkOut.errorBuffer
+        }
+
+        override fun info(): String {
+            val info = ShellUtils().apply { exec(listOf("svn", "info", svnPath)) }
+            val rev = info.inputBuffer.lineSequence().toList().takeIf { it.isNotEmpty() }
+                ?.first { it.startsWith("Last Changed Rev:") } ?: ""
+            info.errorBuffer.forEachLine { println(it) }
+            return rev
         }
     }
 }
