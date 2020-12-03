@@ -9,9 +9,9 @@ open class CompileTask {
     private lateinit var config: BuildConfig
     val uid by lazy { config.projectDir ?: config.name }
     var status = TaskStatus.Waiting
-    private lateinit var scope: CoroutineScope
+    protected lateinit var scope: CoroutineScope
     private lateinit var context: ExecutorCoroutineDispatcher
-    private lateinit var contextStdErr: ExecutorCoroutineDispatcher
+    protected lateinit var contextStdErr: ExecutorCoroutineDispatcher
     var onPush: ((String) -> Unit)? = null
     var onUpdateStatus: (() -> Unit)? = null
     private lateinit var shell: ShellUtils
