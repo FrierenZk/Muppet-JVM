@@ -4,19 +4,14 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.MethodOrderer
-import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestMethodOrder
 import java.io.File
 
-@TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class CreateNewCompileTaskTest {
     private val task by lazy { CreateNewCompileTask() }
 
     @ObsoleteCoroutinesApi
     @Test
-    @Order(1)
     fun create() {
         try {
             File("build/tmp/subversion").deleteRecursively()
@@ -48,5 +43,6 @@ internal class CreateNewCompileTaskTest {
                 delay(1000)
             }
         }
+        task.close()
     }
 }
