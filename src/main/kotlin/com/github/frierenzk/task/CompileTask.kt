@@ -26,10 +26,10 @@ open class CompileTask {
     }
 
     protected open val runSequence = listOf(
-        { svnCheck() },
-        { imageClean() },
-        { imageBuild() },
-        { imageUpload() }
+        fun() = svnCheck(),
+        fun() = imageClean(),
+        fun() = imageBuild(),
+        fun() = imageUpload()
     )
 
     fun run() {
@@ -37,7 +37,8 @@ open class CompileTask {
             if (status == TaskStatus.Waiting) status = TaskStatus.Working
             this.scope.launch(context) {
                 runSequence.forEach {
-                    if (status.isEnd()) status = it.invoke()
+                    if (!status.isEnd()) status = it()
+                    println("run $it")
                 }
                 if (!(status.isError() || status.isStopping())) {
                     status = TaskStatus.Finished.also {
@@ -57,7 +58,7 @@ open class CompileTask {
         }
     }
 
-    private fun svnCheck(): TaskStatus {
+    protected fun svnCheck(): TaskStatus {
         if (config.extraParas.containsKey("update") &&
             config.extraParas["update"] == false
         )
@@ -88,7 +89,7 @@ open class CompileTask {
         return TaskStatus.Working
     }
 
-    private fun imageClean(): TaskStatus {
+    protected fun imageClean(): TaskStatus {
         onPush?.invoke("Clean images")
         val path = Path.of(config.getFullSourcePath() + "/Project/images")
         val file = path.toFile()
@@ -106,7 +107,7 @@ open class CompileTask {
     }
 
     @Suppress("SpellCheckingInspection")
-    private fun imageBuild(): TaskStatus {
+    protected fun imageBuild(): TaskStatus {
         onPush?.invoke("Compile")
         shell = ShellUtils().apply {
             execCommands(
@@ -129,7 +130,7 @@ open class CompileTask {
         else TaskStatus.Error
     }
 
-    private fun imageUpload(): TaskStatus {
+    protected fun imageUpload(): TaskStatus {
         onPush?.invoke("Upload")
         val path = Path.of(config.getFullSourcePath() + "/Project/images")
         val file = path.toFile()
