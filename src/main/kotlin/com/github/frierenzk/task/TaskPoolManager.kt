@@ -77,6 +77,7 @@ class TaskPoolManager: DispatcherBase() {
         }
         remove.forEach {
             println("removing $it")
+            taskPool[it]?.close()
             taskPool.remove(it)
             count--
         }
