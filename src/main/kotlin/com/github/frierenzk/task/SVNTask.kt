@@ -12,12 +12,12 @@ sealed class SVNTask {
         }
 
         fun buildSVNCheckOutTask(uri: URI, svn: String): SVNTask {
-            if (!svn.startsWith("svn://")) throw IllegalArgumentException("Invalid svn path")
+            if (!isURL(svn)) throw IllegalArgumentException("Invalid svn path")
             if (File(uri).listFiles()?.size ?: 0 > 0) throw IllegalArgumentException("Invalid checkout target directory")
             return CheckOutTask(uri, svn)
         }
 
-        fun isSVNPath(svn: String) = svn.startsWith("svn://")
+        fun isURL(svn: String) = svn.startsWith("svn://") || svn.startsWith("http://") || svn.startsWith("https://")
     }
 
     protected open val uri by lazy { URI("").also { throw IllegalArgumentException("Not Implemented") } }
