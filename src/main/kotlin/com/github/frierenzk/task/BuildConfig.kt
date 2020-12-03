@@ -63,9 +63,9 @@ class BuildConfig {
             else -> category
         }
         val replaceRule: HashMap<String, String> = hashMapOf(
-                "\$default" to "buildmanager@172.18.36.250:/volume1/version/$cat/${projectDir ?: name}",
-                "\$base" to "buildmanager@172.18.36.250:/volume1/version",
-                "\$version" to "buildmanager@172.18.36.250:/volume1/version",
+                "\$default" to "buildmanager@$uploadAddress:/volume1/version/$cat/${projectDir ?: name}",
+                "\$base" to "buildmanager@$uploadAddress:/volume1/version",
+                "\$version" to "buildmanager@$uploadAddress:/volume1/version",
                 "\$category" to cat,
                 "\$name" to (projectDir ?: name),
                 "\$projectDir" to (projectDir ?: name)
