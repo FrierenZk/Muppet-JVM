@@ -57,7 +57,7 @@ open class CompileTask {
         }
     }
 
-    protected fun svnCheck(): TaskStatus {
+    private fun svnCheck(): TaskStatus {
         if (config.extraParas.containsKey("update") &&
             config.extraParas["update"] == false
         )
@@ -105,9 +105,9 @@ open class CompileTask {
         return TaskStatus.Working
     }
 
-    @Suppress("SpellCheckingInspection")
     protected fun imageBuild(): TaskStatus {
         onPush?.invoke("Compile")
+        @Suppress("SpellCheckingInspection")
         shell = ShellUtils().apply {
             execCommands(
                 listOf(
