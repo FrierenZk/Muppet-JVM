@@ -38,7 +38,6 @@ open class CompileTask {
             this.scope.launch(context) {
                 runSequence.forEach {
                     if (!status.isEnd()) status = it()
-                    println("run $it")
                 }
                 if (!(status.isError() || status.isStopping())) {
                     status = TaskStatus.Finished.also {
@@ -165,5 +164,12 @@ open class CompileTask {
         }
         status = TaskStatus.Finished
         onUpdateStatus?.invoke()
+    }
+
+    fun close() {
+        scope.cancel("Close scope")
+        context.close()
+        contextStdErr.close()
+        onPush?.invoke("Closed")
     }
 }
