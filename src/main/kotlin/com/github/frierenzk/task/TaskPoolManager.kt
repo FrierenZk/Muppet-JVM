@@ -31,7 +31,7 @@ class TaskPoolManager: DispatcherBase() {
     private val checkContext by lazy { newSingleThreadContext("TaskPoolCheck") }
     private val checkTrigger by lazy { Channel<String>(4) }
     private val checkTicker by lazy { ticker(delayMillis = 30 * 1000) }
-    private val taskPool by lazy { ConcurrentHashMap<String, BuildTask>() }
+    private val taskPool by lazy { ConcurrentHashMap<String, CompileTask>() }
     private val config by lazy { HashMap<String, BuildConfig>() }
     private val configLock by lazy { ReentrantReadWriteLock() }
     private var count = 0
@@ -116,7 +116,7 @@ class TaskPoolManager: DispatcherBase() {
                     if (key is String && value != null)
                         conf.extraParas[key] = value
                 }
-                taskPool[name] = BuildTask().apply {
+                taskPool[name] = CompileTask().apply {
                     create(conf)
                     onPush = fun(line: String) {
                         printlnWithPushLogs(name, line)
@@ -177,7 +177,11 @@ class TaskPoolManager: DispatcherBase() {
     }
 
     private fun getTaskStatus(args: Any) = runBlocking {
-        val (arg, name) = args as Pair<*, *>
+        val (arg, name) = when (args) {
+            is Pair<*, *> -> args
+            is String -> Pair(Unit, args)
+            else -> throw IllegalArgumentException()
+        }
         if (name is String) {
             val status = taskPool[name]?.status ?: TaskStatus.Finished
             raiseEvent(ServerEvent.Status, Pair(arg, Pair(name, status)))
@@ -224,5 +228,6 @@ class TaskPoolManager: DispatcherBase() {
             }
         }
         loadConfig()
+        BuildConfig.loadBuildConfigs()
     }
 }

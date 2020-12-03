@@ -2,9 +2,10 @@ package com.github.frierenzk.task
 
 import kotlinx.coroutines.*
 import com.github.frierenzk.utils.ShellUtils
+import java.io.File
 import java.nio.file.Path
 
-class BuildTask {
+open class CompileTask {
     private lateinit var config: BuildConfig
     val uid by lazy { config.projectDir ?: config.name }
     var status = TaskStatus.Waiting
@@ -24,28 +25,26 @@ class BuildTask {
         status = TaskStatus.Waiting
     }
 
+    protected open val runSequence = listOf(
+        { svnCheck() },
+        { imageClean() },
+        { imageBuild() },
+        { imageUpload() }
+    )
+
     fun run() {
         try {
             if (status == TaskStatus.Waiting) status = TaskStatus.Working
             this.scope.launch(context) {
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping
-                        && status != TaskStatus.Finished)
-                    status = svnCheck()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping
-                        && status != TaskStatus.Finished)
-                    status = imageClean()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping
-                        && status != TaskStatus.Finished)
-                    status = imageBuild()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping
-                        && status != TaskStatus.Finished)
-                    status = imageUpload()
-                if (status != TaskStatus.Error && status != TaskStatus.Stopping) {
+                runSequence.forEach {
+                    if (status.isEnd()) status = it.invoke()
+                }
+                if (!(status.isError() || status.isStopping())) {
                     status = TaskStatus.Finished.also {
                         onPush?.invoke("Finished")
                         onUpdateStatus?.invoke()
                     }
-                } else if (status == TaskStatus.Error) {
+                } else if (status.isError()) {
                     onPush?.invoke("Error occurred")
                     onUpdateStatus?.invoke()
                 }
@@ -53,38 +52,35 @@ class BuildTask {
         } catch (exception: Exception) {
             onPush?.invoke("Error occurred")
             exception.message?.let { onPush?.invoke(it) }
+            exception.stackTrace.joinToString().let { onPush?.invoke(it) }
             status = TaskStatus.Error
         }
     }
 
     private fun svnCheck(): TaskStatus {
         if (config.extraParas.containsKey("update") &&
-                config.extraParas["update"] == false)
+            config.extraParas["update"] == false
+        )
             return TaskStatus.Working
         onPush?.invoke("Check svn update")
-        val command = listOf("svn", "info", config.getFullSvnBasePath())
-        val info = ShellUtils().apply { exec(command) }
-        var rev = ""
-        info.inputBuffer?.forEachLine {
-            if (it.contains("Revision:")) rev = it
-            onPush?.invoke(it)
+        val task = SVNTask.buildSVNTask(File(config.getFullSvnBasePath()).toURI())
+        val rev = task.info()
+        val printTask = fun(task: SVNTask) {
+            task.outBufferedReader.forEachLine { onPush?.invoke(it) }
+            task.errorBufferedReader.forEachLine { onPush?.invoke(it) }
         }
+        printTask(task)
         if (rev.isBlank()) {
-            onPush?.invoke("Check svn info error with rev: $rev, return: ${info.returnCode}")
+            onPush?.invoke("Check svn info error with rev: $rev")
             return TaskStatus.Error
         }
-        val update = ShellUtils().apply { exec(listOf("svn", "up", config.getFullSvnBasePath())) }
-        update.inputBuffer?.forEachLine {
-            onPush?.invoke(it)
-        }
+        task.update()
+        printTask(task)
         if (config.extraParas.containsKey("buildOnlyIfUpdated") &&
-                config.extraParas["buildOnlyIfUpdated"] == true) {
-            info.exec(command)
-            var updated = false
-            info.inputBuffer?.forEachLine {
-                if (it.contains("Revision:")) updated = (it != rev)
-                onPush?.invoke(it)
-            }
+            config.extraParas["buildOnlyIfUpdated"] == true
+        ) {
+            val updated = rev == task.info()
+            printTask(task)
             println("updated = $updated rev = $rev")
             return if (updated) TaskStatus.Working
             else TaskStatus.Finished
@@ -114,10 +110,10 @@ class BuildTask {
         onPush?.invoke("Compile")
         shell = ShellUtils().apply {
             execCommands(
-                    listOf(
-                            "cd ${config.getFullSourcePath()}",
-                            "./mkfw.sh ${config.profile} ; exit"
-                    )
+                listOf(
+                    "cd ${config.getFullSourcePath()}",
+                    "./mkfw.sh ${config.profile} ; exit"
+                )
             )
         }
         scope.launch(this.contextStdErr) {
@@ -144,8 +140,10 @@ class BuildTask {
             onPush?.invoke("image size is not right :${uploadFile.length() / 1024}KiB")
             return TaskStatus.Error
         }
-        val command = listOf("sudo", "sshpass", "-p", "654321", "scp",
-                uploadFile.path, config.getFullUploadPath())
+        val command = listOf(
+            "sudo", "sshpass", "-p", "654321", "scp",
+            uploadFile.path, config.getFullUploadPath()
+        )
         val upload = ShellUtils().apply { exec(command) }
         upload.inputBuffer?.forEachLine {
             onPush?.invoke(it)
