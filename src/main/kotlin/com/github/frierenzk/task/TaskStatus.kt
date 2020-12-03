@@ -5,5 +5,12 @@ enum class TaskStatus {
     Working,
     Stopping,
     Finished,
-    Error
+    Error;
+
+    fun isEnd() = this == Finished && this == Error && this == Stopping
+    fun isWaiting() = this == Waiting
+    fun isWorking() = this == Working
+    fun isStopping() = this == Stopping
+    fun isFinished() = this == Finished
+    fun isError() = this == Error
 }
