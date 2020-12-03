@@ -34,7 +34,7 @@ open class CompileTask {
 
     fun run() {
         try {
-            if (status == TaskStatus.Waiting) status = TaskStatus.Working
+            if (status.isWaiting()) status = TaskStatus.Working
             this.scope.launch(context) {
                 runSequence.forEach {
                     if (!status.isEnd()) status = it()

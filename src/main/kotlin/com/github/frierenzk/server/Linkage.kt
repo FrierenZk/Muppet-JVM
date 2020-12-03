@@ -89,7 +89,7 @@ class Linkage: DispatcherBase() {
             if (name is String && status is TaskStatus) {
                 server.broadcastOperations
                         ?.sendEvent("broadcast_task_status_change", data)
-                if (status == TaskStatus.Finished)
+                if (status.isFinished())
                     server.broadcastOperations
                             ?.sendEvent("broadcast_task_finish", data)
             }

@@ -163,7 +163,7 @@ class TaskPoolManager: DispatcherBase() {
     private fun getWaitingList(args: Any) = runBlocking {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
-            if (value.status == TaskStatus.Waiting) list.add(key)
+            if (value.status.isWaiting()) list.add(key)
         }
         raiseEvent(ServerEvent.WaitingList, Pair(args, list))
     }
@@ -171,7 +171,7 @@ class TaskPoolManager: DispatcherBase() {
     private fun getWorkingList(args: Any) = runBlocking {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
-            if (value.status == TaskStatus.Working)
+            if (value.status.isWorking())
                 list.add(key)
         }
         raiseEvent(ServerEvent.WorkingList, Pair(args, list))
