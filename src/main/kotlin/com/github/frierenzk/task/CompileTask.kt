@@ -79,7 +79,7 @@ open class CompileTask {
         if (config.extraParas.containsKey("buildOnlyIfUpdated") &&
             config.extraParas["buildOnlyIfUpdated"] == true
         ) {
-            val updated = rev == task.info()
+            val updated = rev != task.info()
             printTask(task)
             println("updated = $updated rev = $rev")
             return if (updated) TaskStatus.Working
