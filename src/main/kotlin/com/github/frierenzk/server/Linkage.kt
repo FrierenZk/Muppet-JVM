@@ -36,6 +36,7 @@ class Linkage: DispatcherBase() {
                 ServerEvent.WaitingList -> if (args is Pair<*, *>) sendList(args, event)
                 ServerEvent.Status -> broadCastStatus(args)
                 ServerEvent.BroadCast -> broadCast(args)
+                ServerEvent.CreateTask -> sendCreateTaskMsg(args)
                 else -> println(event)
             }
         }
@@ -99,6 +100,16 @@ class Linkage: DispatcherBase() {
             if (name is String && msg is String) {
                 val data = gson.toJson(mapOf("task" to name, "broadcast_logs" to msg))!!
                 server.broadcastOperations?.sendEvent("broadcast_logs", data)
+            }
+        }
+    }
+
+    private fun sendCreateTaskMsg(args: Any) {
+        if (args is Pair<*, *>) {
+            val (uuid, msg) = args
+            if (uuid is UUID && msg != null) {
+                val data = gson.toJson(msg, msg::class.java)
+                server.getClient(uuid)?.sendEvent("create_task_message", data)
             }
         }
     }

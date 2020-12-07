@@ -10,5 +10,6 @@ enum class ServerEvent:EventType {
     AvailableList,
     WaitingList,
     WorkingList,
-    BroadCast
+    BroadCast,
+    CreateTask
 }
