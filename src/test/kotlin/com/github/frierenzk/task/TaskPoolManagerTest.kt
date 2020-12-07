@@ -1,30 +1,18 @@
 package com.github.frierenzk.task
 
 import com.github.frierenzk.MEvent
+import com.github.frierenzk.server.ServerEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import com.github.frierenzk.server.ServerEvent
+import java.io.File
 
 @ObsoleteCoroutinesApi
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class TaskPoolManagerTest {
-    companion object{
-        @BeforeAll
-        @JvmStatic
-        fun initAll(){}
-
-        @AfterAll
-        @JvmStatic
-        fun tearDownAll(){}
-    }
-
     private val pool by lazy { TaskPoolManager() }
-
-    @BeforeEach
-    fun init(){}
 
     @Test
     @Order(1)
@@ -98,5 +86,22 @@ internal class TaskPoolManagerTest {
         delay(50)
         pool.sendEvent(PoolEvent.StopTask, "wifi6")
         delay(1000)
+    }
+
+    @Test
+    @Order(10)
+    fun createNewTaskTest() = runBlocking {
+        File("build/tmp/subversion").run {
+            if (this.exists()) this.deleteRecursively()
+        }
+        val map = hashMapOf(
+            "name" to "testName",
+            "category" to "test",
+            "profile" to "profile",
+            "svn" to "https://svn.apache.org/repos/asf/subversion/trunk/doc/programmer/",
+            "sourcePath" to "build/tmp/subversion"
+        )
+        pool.sendEvent(PoolEvent.CreateTask, map)
+        delay(10 * 1000)
     }
 }
