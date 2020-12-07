@@ -2,14 +2,15 @@ package com.github.frierenzk.server
 
 import com.corundumstudio.socketio.Configuration
 import com.corundumstudio.socketio.SocketIOServer
-import com.google.gson.GsonBuilder
-import com.google.gson.stream.JsonReader
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.task.TaskStatus
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import com.google.gson.stream.JsonReader
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import java.net.BindException
 import java.nio.file.Path
 import java.util.*
@@ -161,6 +162,19 @@ class Linkage: DispatcherBase() {
         server.addEventListener("reload_config", Any::class.java) { client, _, _ ->
             runBlocking {
                 raiseEvent(PoolEvent.ReloadConfig, client.sessionId)
+            }
+        }
+        server.addEventListener("set_create_task", String::class.java) { client, data, _ ->
+            runBlocking {
+                val args = hashMapOf<String, Any>()
+                JsonParser.parseString(data)?.asJsonObject?.entrySet()?.forEach { (key, value) ->
+                    val str = value.asString
+                    if (key is String && str is String) {
+                        args[key] = str
+                    }
+                }
+                args["uuid"] = client.sessionId
+                raiseEvent(PoolEvent.CreateTask, args)
             }
         }
         server.start()
