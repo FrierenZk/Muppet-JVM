@@ -22,6 +22,7 @@ class Linkage: DispatcherBase() {
     override val eventMonitor = setOf(ServerEvent::class.java)
     private var port by Delegates.notNull<Int>()
     private lateinit var server: SocketIOServer
+    private val gson by lazy { GsonBuilder().setPrettyPrinting().create() }
 
     override fun receiveEvent(event: EventType, args: Any) {
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
@@ -55,12 +56,8 @@ class Linkage: DispatcherBase() {
 
     private fun sendList(args: Pair<*, *>, event: ServerEvent) {
         val (uuid, list) = args
-        if (uuid is UUID) {
-            val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
-            val data = when (list) {
-                null -> return
-                else -> gson.toJson(list, list::class.java)!!
-            }
+        if (uuid is UUID && list != null) {
+            val data = gson.toJson(list, list::class.java)!!
             when (event) {
                 ServerEvent.AvailableList -> {
                     server.getClient(uuid)?.sendEvent("available_list", data)
@@ -79,20 +76,19 @@ class Linkage: DispatcherBase() {
     private fun broadCastStatus(args: Any) = runBlocking {
         if (args is Pair<*, *>) {
             val (name, status) = args
-            val gson = GsonBuilder().setPrettyPrinting().create()!!
             val data = gson.toJson(
-                    mapOf(
-                            "task" to name,
-                            "state" to status.toString(),
-                            "msg" to status.toString()
-                    )
+                mapOf(
+                    "task" to name,
+                    "state" to status.toString(),
+                    "msg" to status.toString()
+                )
             )!!
             if (name is String && status is TaskStatus) {
                 server.broadcastOperations
-                        ?.sendEvent("broadcast_task_status_change", data)
+                    ?.sendEvent("broadcast_task_status_change", data)
                 if (status.isFinished())
                     server.broadcastOperations
-                            ?.sendEvent("broadcast_task_finish", data)
+                        ?.sendEvent("broadcast_task_finish", data)
             }
         }
     }
@@ -100,7 +96,6 @@ class Linkage: DispatcherBase() {
     private fun broadCast(args: Any) = runBlocking {
         if (args is Pair<*, *>) {
             val (name, msg) = args
-            val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
             if (name is String && msg is String) {
                 val data = gson.toJson(mapOf("task" to name, "broadcast_logs" to msg))!!
                 server.broadcastOperations?.sendEvent("broadcast_logs", data)
@@ -115,7 +110,6 @@ class Linkage: DispatcherBase() {
             return
         }
         val reader = JsonReader(file.reader())
-        val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
         val paras: HashMap<String, Any> = gson.fromJson(reader, HashMap<String, Any>()::class.java)
         port = paras.getOrDefault("port", 21518) as Int
     }
