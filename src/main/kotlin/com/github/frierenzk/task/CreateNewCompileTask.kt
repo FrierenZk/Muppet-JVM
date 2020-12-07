@@ -9,10 +9,6 @@ class CreateNewCompileTask:CompileTask() {
     var onSave: ((BuildConfig) -> Unit)? = null
 
     @ObsoleteCoroutinesApi
-    fun create(name: String, category: String, profile: String, svn: String) =
-        create(name, category, profile, svn, "", "", "")
-
-    @ObsoleteCoroutinesApi
     fun create(
         name: String,
         category: String,
@@ -39,6 +35,7 @@ class CreateNewCompileTask:CompileTask() {
             return Pair(false, exception.message ?: "")
         }
         val rev = task.info()
+        if(rev.isBlank()) return Pair(false,"Can not get valid rev")
         task.outBufferedReader.forEachLine { onPush?.invoke(it) }
         task.errorBufferedReader.forEachLine { onPush?.invoke(it) }
         onSave?.invoke(config)
