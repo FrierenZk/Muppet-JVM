@@ -52,6 +52,15 @@ object ConfigOperator {
     private val buildConfigFile by lazy { ConfigFile("build_configs.json") }
     private val buildListFile by lazy { ConfigFile("build_list.json") }
 
+    private fun castJsonPrimitive(jsonPrimitive: JsonPrimitive):Any {
+        return when {
+            jsonPrimitive.isBoolean -> jsonPrimitive.asBoolean
+            jsonPrimitive.isNumber -> jsonPrimitive.asNumber
+            jsonPrimitive.isString -> jsonPrimitive.asString
+            else -> ""
+        }
+    }
+
     fun loadServerConfig(): JsonObject {
         val jsonObject =
             loadFile(serverFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
@@ -59,15 +68,16 @@ object ConfigOperator {
         return jsonObject
     }
 
-    fun loadTickerConfig(): HashMap<String, HashMap<String, String>> {
+    fun loadTickerConfig(): HashMap<String, HashMap<String, Any>> {
         val jsonObject = loadFile(timerFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
-        val ret = hashMapOf<String, HashMap<String, String>>()
-        jsonObject.entrySet().forEach {
-            (it.value.asJsonObject ?: JsonObject()).entrySet()?.forEach { (key, value) ->
-                value.asString?.run { ret.getOrPut(it.key) { hashMapOf() }[key] = this }
+        val ret = hashMapOf<String, HashMap<String, Any>>()
+        jsonObject.entrySet().forEach { (name, subObj) ->
+            if (subObj.isJsonObject) subObj.asJsonObject.entrySet().forEach { (key, value) ->
+                if (value.isJsonPrimitive) ret.getOrPut(name) { hashMapOf() }[key] =
+                    castJsonPrimitive(value.asJsonPrimitive)
             }
         }
-        return HashMap(ret.filterNot { it.value.containsKey("interval") })
+        return HashMap(ret.filter { it.value.containsKey("interval") })
     }
 
     fun loadBuildConfigs(): JsonObject {

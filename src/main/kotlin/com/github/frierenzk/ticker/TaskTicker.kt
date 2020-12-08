@@ -8,7 +8,6 @@ import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.ticker
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import kotlin.concurrent.read
 import kotlin.concurrent.write
@@ -26,25 +25,26 @@ class TaskTicker: DispatcherBase() {
     }
 
     private val tasks: HashMap<String, Int> by lazy { hashMapOf() }
-    private val taskParas: HashMap<String, HashMap<String, String>> by lazy { hashMapOf() }
+    private val taskParas: HashMap<String, HashMap<String, Any>> by lazy { hashMapOf() }
     private val lock by lazy { ReentrantReadWriteLock() }
     private val ticker by lazy { ticker(delayMillis = 60 * 1000) }
     private val tickerContext = newSingleThreadContext("ticker")
 
     private fun reset() {
         val configs = ConfigOperator.loadTickerConfig()
+        println(configs)
         lock.write {
             tasks.clear()
             taskParas.clear()
             taskParas.putAll(configs)
-            println(tasks.keys)
+            configs.forEach { (key, _) -> tasks[key] = 0 }
         }
     }
 
     private fun tick() {
         lock.read {
             tasks.replaceAll { task, count ->
-                val interval = taskParas[task]?.get("interval")?.toDouble() ?: Double.POSITIVE_INFINITY
+                val interval = taskParas[task]?.get("interval").toString().toDoubleOrNull() ?: Double.POSITIVE_INFINITY
                 if (count > interval) {
                     scope.launch(context) {
                         raiseEvent(PoolEvent.AddTask, Pair(task, taskParas[task]?.filterNot {
@@ -58,9 +58,7 @@ class TaskTicker: DispatcherBase() {
     }
 
     init {
-        runBlocking {
-            reset()
-        }
+        reset()
         scope.launch(tickerContext) {
             while (true) {
                 ticker.receive()
