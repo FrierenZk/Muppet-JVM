@@ -1,18 +1,22 @@
 package com.github.frierenzk.utils
 
-import com.google.gson.JsonElement
-import com.google.gson.JsonNull
-import com.google.gson.JsonObject
-import com.google.gson.JsonParser
+import com.google.gson.*
 import java.io.File
 
 object ConfigOperator {
+    private val gson by lazy { GsonBuilder().setPrettyPrinting().create() }
+
     private fun loadFile(file: File): JsonElement {
         return try {
             if (file.exists())
                 JsonParser.parseReader(file.reader())
             else {
                 file.createNewFile()
+                file.bufferedWriter().run {
+                    this.write(gson.toJson(JsonObject()))
+                    this.flush()
+                    this.close()
+                }
                 JsonNull.INSTANCE
             }
         } catch (exception: Exception) {
