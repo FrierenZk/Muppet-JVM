@@ -324,6 +324,5 @@ class TaskPoolManager : DispatcherBase() {
             }
         }
         loadConfig()
-        BuildConfig.loadBuildConfigs()
     }
 }
