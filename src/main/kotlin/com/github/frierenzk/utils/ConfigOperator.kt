@@ -4,8 +4,6 @@ import com.google.gson.*
 import java.io.File
 
 object ConfigOperator {
-    private val gson by lazy { GsonBuilder().setPrettyPrinting().create() }
-
     private fun loadFile(file: File): JsonElement {
         return try {
             if (file.exists())
@@ -13,7 +11,7 @@ object ConfigOperator {
             else {
                 file.createNewFile()
                 file.bufferedWriter().run {
-                    this.write(gson.toJson(JsonObject()))
+                    this.write(JsonObject().toString())
                     this.flush()
                     this.close()
                 }
@@ -22,6 +20,16 @@ object ConfigOperator {
         } catch (exception: Exception) {
             exception.printStackTrace()
             JsonNull.INSTANCE
+        }
+    }
+
+    private fun saveFile(file:File,data:JsonElement) {
+        if (file.exists()) file.delete()
+        file.createNewFile()
+        file.bufferedWriter().run {
+            this.write(data.toString())
+            this.flush()
+            this.close()
         }
     }
 
@@ -40,5 +48,13 @@ object ConfigOperator {
             }
         }
         return HashMap(ret.filterNot { it.value.containsKey("interval") })
+    }
+
+    fun loadBuildConfigs(): JsonObject {
+        return loadFile(File("build_configs.json")).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+    }
+
+    fun saveBuildConfigs(jsonObject: JsonObject) {
+        saveFile(File("build_configs.json"),jsonObject)
     }
 }
