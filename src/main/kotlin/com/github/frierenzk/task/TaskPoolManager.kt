@@ -3,11 +3,7 @@ package com.github.frierenzk.task
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.server.ServerEvent
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
-import com.google.gson.stream.JsonReader
+import com.github.frierenzk.utils.ConfigOperator
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
@@ -15,7 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -188,7 +183,7 @@ class TaskPoolManager : DispatcherBase() {
                     config[name] = conf!!
                 }
                 push.invoke(true, "Task $name create success")
-                saveConfig()
+                ConfigOperator.saveBuildList(config)
                 taskPool[name] = task.apply {
                     onPush = fun(line: String) {
                         printlnWithPushLogs(name, line)
@@ -263,50 +258,9 @@ class TaskPoolManager : DispatcherBase() {
 
     private fun loadConfig() {
         configLock.write {
-            val gson = GsonBuilder().setPrettyPrinting().create() as Gson
-            val file = File("build_list.json").apply { if (!this.exists()) this.createNewFile() }
-            val reader = JsonReader(file.reader())
-            val root = JsonParser.parseReader(reader) ?: null
-            if (root is JsonElement && root.isJsonObject) {
-                root.asJsonObject?.entrySet()?.forEach { (_, value) ->
-                    if (value is JsonElement && value.isJsonObject) {
-                        value.asJsonObject?.entrySet()?.forEach {
-                            try {
-                                val buildConfig = gson.fromJson(it?.value?.asJsonObject!!, BuildConfig::class.java)
-                                    ?: null
-                                if (buildConfig is BuildConfig)
-                                    config[buildConfig.name] = buildConfig
-                            } catch (exception: Exception) {
-                                println(exception)
-                            }
-                        }
-                    }
-                }
-            }
+            config.clear()
+            config.putAll(ConfigOperator.loadBuildList())
             println(config.keys)
-        }
-    }
-
-    private fun saveConfig() {
-        configLock.write {
-            val file = File("build_list.json").apply {
-                if (this.exists()) this.delete()
-                this.createNewFile()
-            }
-            val map = HashMap<String, HashMap<String, BuildConfig>>()
-            config.forEach { (key, value) ->
-                map.getOrPut(value.category) { hashMapOf() }[key] = value
-            }
-            val json = GsonBuilder().setPrettyPrinting().create().toJson(map)
-            map.forEach { (t, u) ->
-                u.forEach { println("$t,$u,$it") }
-            }
-            file.bufferedWriter().run {
-                write(json)
-                flush()
-                close()
-            }
-            println("Config Saved ${json.length} Bytes")
         }
     }
 
