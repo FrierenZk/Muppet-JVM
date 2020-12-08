@@ -4,6 +4,11 @@ import org.junit.jupiter.api.*
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class BuildConfigTest {
+    @BeforeEach
+    internal fun setUp() {
+        BuildConfig.loadBuildConfigs()
+    }
+
     private val buildConfig by lazy {
         BuildConfig().apply {
             this.name = "testName"

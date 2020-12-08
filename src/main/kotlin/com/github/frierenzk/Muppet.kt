@@ -4,6 +4,7 @@ import com.github.frierenzk.dispatcher.DispatcherInterface
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.input.InputListener
 import com.github.frierenzk.server.Linkage
+import com.github.frierenzk.task.BuildConfig
 import com.github.frierenzk.task.TaskPoolManager
 import com.github.frierenzk.ticker.TaskTicker
 import kotlinx.coroutines.*
