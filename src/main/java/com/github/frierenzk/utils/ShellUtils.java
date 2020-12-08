@@ -1,7 +1,6 @@
 package com.github.frierenzk.utils;
 
 import java.io.*;
-import java.util.Iterator;
 import java.util.List;
 
 public class ShellUtils {

@@ -22,7 +22,7 @@ class ShellUtilsTest {
     @Test
     @Order(2)
     fun testIO() {
-        shell.exec(listOf("ping", "127.0.0.1"))
+        shell.exec(listOf("ping", "127.0.0.1", "-c", "4"))
         shell.inputBuffer.lines().forEach { println(it) }
         shell.errorBuffer.lines().forEach { println(it) }
         println(shell.returnCode)

@@ -2,41 +2,42 @@ package com.github.frierenzk.server
 
 import com.corundumstudio.socketio.Configuration
 import com.corundumstudio.socketio.SocketIOServer
-import com.google.gson.GsonBuilder
-import com.google.gson.stream.JsonReader
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
-import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.runBlocking
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.task.TaskStatus
+import com.github.frierenzk.utils.ConfigOperator
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonParser
+import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.runBlocking
 import java.net.BindException
-import java.nio.file.Path
 import java.util.*
-import kotlin.collections.HashMap
-import kotlin.properties.Delegates
 
 @ObsoleteCoroutinesApi
 class Linkage: DispatcherBase() {
     override val eventMonitor = setOf(ServerEvent::class.java)
-    private var port by Delegates.notNull<Int>()
+    private val port by lazy { ConfigOperator.loadServerConfig().get("port").asInt }
     private lateinit var server: SocketIOServer
+    private val gson by lazy { GsonBuilder().setPrettyPrinting().create() }
 
     override fun receiveEvent(event: EventType, args: Any) {
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
-        when (event) {
-            is ServerEvent -> when (event) {
-                ServerEvent.Default -> println("$event shouldn't be used")
-                ServerEvent.AddTask -> if (args is Pair<*, *>) completionNotify(args, event)
-                ServerEvent.StopTask -> if (args is Pair<*, *>) completionNotify(args, event)
-                ServerEvent.AvailableList -> if (args is Pair<*, *>) sendList(args, event)
-                ServerEvent.WorkingList -> if (args is Pair<*, *>) sendList(args, event)
-                ServerEvent.WaitingList -> if (args is Pair<*, *>) sendList(args, event)
-                ServerEvent.Status -> broadCastStatus(args)
-                ServerEvent.BroadCast -> broadCast(args)
-                else -> println(event)
+        if (args is Pair<*, *>)
+            when (event) {
+                is ServerEvent -> when (event) {
+                    ServerEvent.Default -> println("$event shouldn't be used")
+                    ServerEvent.AddTask -> completionNotify(args, event)
+                    ServerEvent.StopTask -> completionNotify(args, event)
+                    ServerEvent.AvailableList -> sendList(args, event)
+                    ServerEvent.WorkingList -> sendList(args, event)
+                    ServerEvent.WaitingList -> sendList(args, event)
+                    ServerEvent.Status -> broadCastStatus(args)
+                    ServerEvent.BroadCast -> broadCast(args)
+                    ServerEvent.CreateTask -> sendCreateTaskMsg(args)
+                    else -> println(event)
+                }
             }
-        }
     }
 
     private fun completionNotify(args: Pair<*, *>, event: ServerEvent) {
@@ -54,12 +55,8 @@ class Linkage: DispatcherBase() {
 
     private fun sendList(args: Pair<*, *>, event: ServerEvent) {
         val (uuid, list) = args
-        if (uuid is UUID) {
-            val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
-            val data = when (list) {
-                null -> return
-                else -> gson.toJson(list, list::class.java)!!
-            }
+        if (uuid is UUID && list != null) {
+            val data = gson.toJson(list, list::class.java)!!
             when (event) {
                 ServerEvent.AvailableList -> {
                     server.getClient(uuid)?.sendEvent("available_list", data)
@@ -75,48 +72,38 @@ class Linkage: DispatcherBase() {
         }
     }
 
-    private fun broadCastStatus(args: Any) = runBlocking {
-        if (args is Pair<*, *>) {
-            val (name, status) = args
-            val gson = GsonBuilder().setPrettyPrinting().create()!!
-            val data = gson.toJson(
-                    mapOf(
-                            "task" to name,
-                            "state" to status.toString(),
-                            "msg" to status.toString()
-                    )
-            )!!
-            if (name is String && status is TaskStatus) {
+    private fun broadCastStatus(args: Pair<*, *>) = runBlocking {
+        val (name, status) = args
+        val data = gson.toJson(
+            mapOf(
+                "task" to name,
+                "state" to status.toString(),
+                "msg" to status.toString()
+            )
+        )!!
+        if (name is String && status is TaskStatus) {
+            server.broadcastOperations
+                ?.sendEvent("broadcast_task_status_change", data)
+            if (status.isFinished())
                 server.broadcastOperations
-                        ?.sendEvent("broadcast_task_status_change", data)
-                if (status == TaskStatus.Finished)
-                    server.broadcastOperations
-                            ?.sendEvent("broadcast_task_finish", data)
-            }
+                    ?.sendEvent("broadcast_task_finish", data)
         }
     }
 
-    private fun broadCast(args: Any) = runBlocking {
-        if (args is Pair<*, *>) {
-            val (name, msg) = args
-            val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
-            if (name is String && msg is String) {
-                val data = gson.toJson(mapOf("task" to name, "broadcast_logs" to msg))!!
-                server.broadcastOperations?.sendEvent("broadcast_logs", data)
-            }
+    private fun broadCast(args: Pair<*, *>) = runBlocking {
+        val (name, msg) = args
+        if (name is String && msg is String) {
+            val data = gson.toJson(mapOf("task" to name, "broadcast_logs" to msg))!!
+            server.broadcastOperations?.sendEvent("broadcast_logs", data)
         }
     }
 
-    private fun loadConfig() {
-        val file = Path.of("server_settings.json").toFile()
-        if (!(file.exists() && file.isFile)) {
-            port = 21518
-            return
+    private fun sendCreateTaskMsg(args: Pair<*, *>) {
+        val (uuid, msg) = args
+        if (uuid is UUID && msg != null) {
+            val data = gson.toJson(msg, msg::class.java)
+            server.getClient(uuid)?.sendEvent("create_task_message", data)
         }
-        val reader = JsonReader(file.reader())
-        val gson = GsonBuilder().apply { setPrettyPrinting() }.create()!!
-        val paras: HashMap<String, Any> = gson.fromJson(reader, HashMap<String, Any>()::class.java)
-        port = paras.getOrDefault("port", 21518) as Int
     }
 
     private fun runServer() {
@@ -163,6 +150,19 @@ class Linkage: DispatcherBase() {
                 raiseEvent(PoolEvent.ReloadConfig, client.sessionId)
             }
         }
+        server.addEventListener("set_create_task", String::class.java) { client, data, _ ->
+            runBlocking {
+                val args = hashMapOf<String, Any>()
+                JsonParser.parseString(data)?.asJsonObject?.entrySet()?.forEach { (key, value) ->
+                    val str = value.asString
+                    if (key is String && str is String) {
+                        args[key] = str
+                    }
+                }
+                args["uuid"] = client.sessionId
+                raiseEvent(PoolEvent.CreateTask, args)
+            }
+        }
         server.start()
     }
 
@@ -172,12 +172,11 @@ class Linkage: DispatcherBase() {
     }
 
     init {
-        loadConfig()
         try {
             runServer()
         } catch (exception: BindException) {
-            println(exception.message)
-            println("Server closed")
+            exception.printStackTrace()
+            println("Server closed because of $exception")
         }
     }
 }

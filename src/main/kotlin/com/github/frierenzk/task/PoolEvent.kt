@@ -5,6 +5,7 @@ import com.github.frierenzk.dispatcher.EventType
 enum class PoolEvent:EventType {
     Default,
     AddTask,
+    CreateTask,
     StopTask,
     WorkingList,
     WaitingList,

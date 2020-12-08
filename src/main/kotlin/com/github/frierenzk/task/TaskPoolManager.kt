@@ -1,12 +1,9 @@
 package com.github.frierenzk.task
 
-import com.google.gson.Gson
-import com.google.gson.GsonBuilder
-import com.google.gson.JsonElement
-import com.google.gson.JsonParser
-import com.google.gson.stream.JsonReader
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
+import com.github.frierenzk.server.ServerEvent
+import com.github.frierenzk.utils.ConfigOperator
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
@@ -14,8 +11,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
-import com.github.frierenzk.server.ServerEvent
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
@@ -26,12 +21,12 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 @ObsoleteCoroutinesApi
-class TaskPoolManager: DispatcherBase() {
+class TaskPoolManager : DispatcherBase() {
     override val eventMonitor = setOf(PoolEvent::class.java)
     private val checkContext by lazy { newSingleThreadContext("TaskPoolCheck") }
     private val checkTrigger by lazy { Channel<String>(4) }
     private val checkTicker by lazy { ticker(delayMillis = 30 * 1000) }
-    private val taskPool by lazy { ConcurrentHashMap<String, BuildTask>() }
+    private val taskPool by lazy { ConcurrentHashMap<String, CompileTask>() }
     private val config by lazy { HashMap<String, BuildConfig>() }
     private val configLock by lazy { ReentrantReadWriteLock() }
     private var count = 0
@@ -51,6 +46,7 @@ class TaskPoolManager: DispatcherBase() {
                     PoolEvent.WorkingList -> getWorkingList(args)
                     PoolEvent.TaskStatus -> getTaskStatus(args)
                     PoolEvent.ReloadConfig -> loadConfig()
+                    PoolEvent.CreateTask -> createNewCheckOutTask(args)
                     else -> println(event)
                 }
         }
@@ -77,6 +73,7 @@ class TaskPoolManager: DispatcherBase() {
         }
         remove.forEach {
             println("removing $it")
+            taskPool[it]?.close()
             taskPool.remove(it)
             count--
         }
@@ -84,6 +81,20 @@ class TaskPoolManager: DispatcherBase() {
             if (count < maxCount && !working.contains(taskPool[it]?.uid))
                 taskPool[it]?.run()
         }
+    }
+
+    private inline fun <reified T1, reified T2> castPairs(args: Pair<*, *>): Pair<T1?, T2?> {
+        val (key, value) = args
+        return if (key is T1 && value is T2) Pair(key, value)
+        else Pair(null, null)
+    }
+
+    private inline fun <reified T1, reified T2> castMap(args: HashMap<*, *>): HashMap<T1, T2> {
+        val dstMap = hashMapOf<T1, T2>()
+        args.forEach { (key, value) ->
+            if (key is T1 && value is T2) dstMap[key] = value
+        }
+        return dstMap
     }
 
     private fun createNewTask(arg: Any) {
@@ -116,7 +127,7 @@ class TaskPoolManager: DispatcherBase() {
                     if (key is String && value != null)
                         conf.extraParas[key] = value
                 }
-                taskPool[name] = BuildTask().apply {
+                taskPool[name] = CompileTask().apply {
                     create(conf)
                     onPush = fun(line: String) {
                         printlnWithPushLogs(name, line)
@@ -136,18 +147,75 @@ class TaskPoolManager: DispatcherBase() {
         }
     }
 
-    private fun stopTask(arg: Any) = runBlocking {
-        val name = when (arg) {
-            is String -> arg
-            is Pair<*, *> -> arg.second as String
-            else -> ""
+    private fun createNewCheckOutTask(args: Any) {
+        var uuid: UUID? = null
+        val push = fun(status: Boolean, msg: String) = runBlocking {
+            val data = "[Create][${calendarFormatter.format(Calendar.getInstance().time)}]: $msg"
+            println(data)
+            raiseEvent(ServerEvent.CreateTask, Pair(uuid, mapOf("status" to status, "msg" to data)))
         }
-        if (taskPool.containsKey(name)) {
-            taskPool[name]?.stop()
-            if (arg is Pair<*, *>) raiseEvent(ServerEvent.StopTask, arg)
-        } else {
-            printlnWithPushLogs(name, "Target task can not find in build list")
+        val map = castMap<String, Any>(args as? HashMap<*, *> ?: hashMapOf(0 to 0))
+        try {
+            val name = map["name"] as String
+            val category = map["category"] as String
+            val profile = map["profile"] as String
+            val svn = map["svn"] as String
+            val projectDir = map["projectDir"] as? String ?: ""
+            val uploadPath = map["uploadPath"] as? String ?: ""
+            val sourcePath = map["sourcePath"] as? String ?: ""
+            uuid = map["UUID"] as? UUID
+            if (config.containsKey(name)) {
+                push.invoke(false, "Already had task $name, please change another name")
+                return
+            }
+            val task = CreateNewCompileTask()
+            var conf: BuildConfig? = null
+            task.onSave = {
+                conf = it
+            }
+            val (result, rev) = task.create(name, category, profile, svn, projectDir, uploadPath, sourcePath)
+            if (!result) {
+                push.invoke(false, "Task Failed to create, with $rev")
+                return
+            }
+            if (conf is BuildConfig) {
+                configLock.read {
+                    config[name] = conf!!
+                }
+                push.invoke(true, "Task $name create success")
+                ConfigOperator.saveBuildList(config)
+                taskPool[name] = task.apply {
+                    onPush = fun(line: String) {
+                        printlnWithPushLogs(name, line)
+                    }
+                    onUpdateStatus = fun() = runBlocking {
+                        checkTrigger.send("")
+                    }
+                }
+            } else {
+                push.invoke(false, "Can not generate BuildConfig from paras")
+                return
+            }
+        } catch (exception: Exception) {
+            push.invoke(false, "Error occurred")
+            push.invoke(false, exception.stackTraceToString())
+            return
         }
+    }
+
+    private fun stopTask(args: Any) = runBlocking {
+        val (uuid: UUID?, name: String?) = when (args) {
+            is String -> Pair(null, args)
+            is Pair<*, *> -> castPairs<UUID, String>(args)
+            else -> Pair(null, null)
+        }
+        if (name is String)
+            if (taskPool.containsKey(name)) {
+                taskPool[name]?.stop()
+                if (uuid is UUID) raiseEvent(ServerEvent.StopTask, args)
+            } else {
+                printlnWithPushLogs(name, "Target task can not find in build list")
+            }
     }
 
     private fun getAvailableList(args: Any) = runBlocking {
@@ -162,7 +230,7 @@ class TaskPoolManager: DispatcherBase() {
     private fun getWaitingList(args: Any) = runBlocking {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
-            if (value.status == TaskStatus.Waiting) list.add(key)
+            if (value.status.isWaiting()) list.add(key)
         }
         raiseEvent(ServerEvent.WaitingList, Pair(args, list))
     }
@@ -170,14 +238,18 @@ class TaskPoolManager: DispatcherBase() {
     private fun getWorkingList(args: Any) = runBlocking {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
-            if (value.status == TaskStatus.Working)
+            if (value.status.isWorking())
                 list.add(key)
         }
         raiseEvent(ServerEvent.WorkingList, Pair(args, list))
     }
 
     private fun getTaskStatus(args: Any) = runBlocking {
-        val (arg, name) = args as Pair<*, *>
+        val (arg, name) = when (args) {
+            is Pair<*, *> -> args
+            is String -> Pair(Unit, args)
+            else -> throw IllegalArgumentException()
+        }
         if (name is String) {
             val status = taskPool[name]?.status ?: TaskStatus.Finished
             raiseEvent(ServerEvent.Status, Pair(arg, Pair(name, status)))
@@ -186,26 +258,8 @@ class TaskPoolManager: DispatcherBase() {
 
     private fun loadConfig() {
         configLock.write {
-            val gson = GsonBuilder().setPrettyPrinting().create() as Gson
-            val file = File("build_list.json").apply { if (!this.exists()) this.createNewFile() }
-            val reader = JsonReader(file.reader())
-            val root = JsonParser.parseReader(reader) ?: null
-            if (root is JsonElement && root.isJsonObject) {
-                root.asJsonObject?.entrySet()?.forEach { (_, value) ->
-                    if (value is JsonElement && value.isJsonObject) {
-                        value.asJsonObject?.entrySet()?.forEach {
-                            try {
-                                val buildConfig = gson.fromJson(it?.value?.asJsonObject!!, BuildConfig::class.java)
-                                        ?: null
-                                if (buildConfig is BuildConfig)
-                                    config[buildConfig.name] = buildConfig
-                            } catch (exception: Exception) {
-                                println(exception)
-                            }
-                        }
-                    }
-                }
-            }
+            config.clear()
+            config.putAll(ConfigOperator.loadBuildList())
             println(config.keys)
         }
     }

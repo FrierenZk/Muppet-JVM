@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.github.frierenzk"
-version = "0.1.2".let {
+version = "0.2.2".let {
     "$it${if (getGitID().isBlank()) "unknown" else "-${getGitID()}"}"
 }
 
@@ -39,7 +39,7 @@ tasks {
     }
     jar {
         manifest {
-            attributes["Main-Class"] = "com.github.frierenzk.Muppet"
+            attributes["Main-Class"] = "com.github.frierenzk.MuppetKt"
         }
         configurations["compileClasspath"].forEach { file: File ->
             from(zipTree(file.absoluteFile))
