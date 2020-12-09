@@ -32,6 +32,7 @@ class TaskTicker: DispatcherBase() {
 
     private fun reset() {
         val configs = ConfigOperator.loadTickerConfig()
+        configs.forEach { (t, u) -> u["name"] = t }
         println(configs)
         lock.write {
             tasks.clear()
@@ -47,8 +48,8 @@ class TaskTicker: DispatcherBase() {
                 val interval = taskParas[task]?.get("interval").toString().toDoubleOrNull() ?: Double.POSITIVE_INFINITY
                 if (count > interval) {
                     scope.launch(context) {
-                        raiseEvent(PoolEvent.AddTask, Pair(task, taskParas[task]?.filterNot {
-                            it.key == "interval" || it.key == "" || it.key == "name"
+                        raiseEvent(PoolEvent.AddTask, Pair(null, taskParas[task]?.filterNot {
+                            it.key == "interval" || it.key == ""
                         }))
                     }
                     1
@@ -57,7 +58,7 @@ class TaskTicker: DispatcherBase() {
         }
     }
 
-    init {
+    override fun init() {
         reset()
         scope.launch(tickerContext) {
             while (true) {

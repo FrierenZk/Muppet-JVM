@@ -171,7 +171,7 @@ class Linkage: DispatcherBase() {
         super.closeEvent()
     }
 
-    init {
+    override fun init() {
         try {
             runServer()
         } catch (exception: BindException) {
