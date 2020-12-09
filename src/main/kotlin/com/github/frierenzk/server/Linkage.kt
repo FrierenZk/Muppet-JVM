@@ -20,7 +20,7 @@ import java.net.BindException
 import java.util.*
 
 @ObsoleteCoroutinesApi
-class Linkage: DispatcherBase() {
+class Linkage : DispatcherBase() {
     override val eventMonitor = setOf(ServerEvent::class.java)
     private val port by lazy { ConfigOperator.loadServerConfig().get("port").asInt }
     private lateinit var server: SocketIOServer

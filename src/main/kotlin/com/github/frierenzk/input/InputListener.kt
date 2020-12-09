@@ -11,7 +11,7 @@ import kotlinx.coroutines.newSingleThreadContext
 import java.util.*
 
 @ObsoleteCoroutinesApi
-class InputListener:DispatcherBase() {
+class InputListener : DispatcherBase() {
     private val inputContext by lazy { newSingleThreadContext("input") }
     private val handlerContext by lazy { newSingleThreadContext("handler") }
     override val eventMonitor by lazy { setOf(InputEvent::class.java) }

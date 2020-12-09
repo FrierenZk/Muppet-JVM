@@ -17,7 +17,7 @@ object TypeUtils {
         return dstMap
     }
 
-    fun castJsonPrimitive(jsonPrimitive: JsonPrimitive):Any {
+    fun castJsonPrimitive(jsonPrimitive: JsonPrimitive): Any {
         return when {
             jsonPrimitive.isBoolean -> jsonPrimitive.asBoolean
             jsonPrimitive.isNumber -> jsonPrimitive.asNumber
@@ -26,11 +26,11 @@ object TypeUtils {
         }
     }
 
-    fun castIntoJsonObject(jsonElement:JsonElement):JsonObject {
+    fun castIntoJsonObject(jsonElement: JsonElement): JsonObject {
         return jsonElement.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
     }
 
-    fun castIntoJsonArray(jsonElement:JsonElement):JsonArray {
+    fun castIntoJsonArray(jsonElement: JsonElement): JsonArray {
         return jsonElement.takeIf { it.isJsonArray }?.asJsonArray ?: JsonArray()
     }
 
