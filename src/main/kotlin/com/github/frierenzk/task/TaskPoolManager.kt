@@ -85,6 +85,13 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
+    override fun closeEvent() {
+        checkContext.close()
+        checkTicker.cancel()
+        checkTrigger.close()
+        super.closeEvent()
+    }
+
     private fun createNewTask(args: Pair<*,*>) {
         val (uuid,paras) = castPairs<UUID,HashMap<String,String>>(args)
         val name = paras?.get("name")?:""

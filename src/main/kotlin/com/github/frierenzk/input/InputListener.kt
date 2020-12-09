@@ -27,6 +27,8 @@ class InputListener:DispatcherBase() {
 
     override fun closeEvent() {
         inputContext.close()
+        handlerContext.close()
+        reader.close()
         super.closeEvent()
     }
 

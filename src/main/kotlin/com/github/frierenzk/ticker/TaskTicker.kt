@@ -58,6 +58,12 @@ class TaskTicker: DispatcherBase() {
         }
     }
 
+    override fun closeEvent() {
+        tickerContext.close()
+        ticker.cancel()
+        super.closeEvent()
+    }
+
     override fun init() {
         reset()
         scope.launch(tickerContext) {
