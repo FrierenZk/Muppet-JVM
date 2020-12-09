@@ -23,15 +23,14 @@ internal class CreateNewCompileTaskTest {
             println(it)
             status = true
         }
-        val (result, msg) = task.create(
-            "testName",
-            "category",
-            "profile",
-            "https://svn.apache.org/repos/asf/subversion/trunk/doc/programmer/",
-            "",
-            "",
-            "build/tmp/subversion"
+        val map = hashMapOf<String, Any>(
+            "name" to "testName",
+            "category" to "test",
+            "profile" to "profile",
+            "svn" to "https://svn.apache.org/repos/asf/subversion/trunk/doc/programmer/",
+            "sourcePath" to "build/tmp/subversion"
         )
+        val (result, msg) = task.create(map)
         println(msg)
         assertEquals(result, true)
         assertEquals(status, true)

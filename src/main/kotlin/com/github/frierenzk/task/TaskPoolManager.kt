@@ -92,7 +92,7 @@ class TaskPoolManager : DispatcherBase() {
         super.closeEvent()
     }
 
-    private fun createNewTask(args: HashMap<*,*>) {
+    private fun createNewTask(args: HashMap<*, *>) {
         val paras = castMap<String, Any>(args)
         val uuid: UUID? = paras["uuid"]?.let { it as? UUID }
         val name = paras["name"]?.let { it as? String } ?: ""
@@ -125,7 +125,7 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun createNewCheckOutTask(args: HashMap<*,*>) {
+    private fun createNewCheckOutTask(args: HashMap<*, *>) {
         var uuid: UUID? = null
         val push = fun(status: Boolean, msg: String) = runBlocking {
             val data = "[Create][${calendarFormatter.format(Calendar.getInstance().time)}]: $msg"
@@ -135,12 +135,6 @@ class TaskPoolManager : DispatcherBase() {
         val map = castMap<String, Any>(args)
         try {
             val name = map["name"] as String
-            val category = map["category"] as String
-            val profile = map["profile"] as String
-            val svn = map["svn"] as String
-            val projectDir = map["projectDir"] as? String ?: ""
-            val uploadPath = map["uploadPath"] as? String ?: ""
-            val sourcePath = map["sourcePath"] as? String ?: ""
             uuid = map["uuid"]?.let { it as? UUID }
             if (config.containsKey(name)) {
                 push.invoke(false, "Already had task $name, please change another name")
@@ -148,10 +142,8 @@ class TaskPoolManager : DispatcherBase() {
             }
             val task = CreateNewCompileTask()
             var conf: BuildConfig? = null
-            task.onSave = {
-                conf = it
-            }
-            val (result, rev) = task.create(name, category, profile, svn, projectDir, uploadPath, sourcePath)
+            task.onSave = { conf = it }
+            val (result, rev) = task.create(map)
             if (!result) {
                 push.invoke(false, "Task Failed to create, with $rev")
                 return
@@ -181,7 +173,7 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun stopTask(args: Pair<*,*>) = runBlocking {
+    private fun stopTask(args: Pair<*, *>) = runBlocking {
         val (uuid, name) = castPairs<UUID, String>(args)
         if (name is String)
             if (taskPool.containsKey(name)) {
@@ -240,16 +232,11 @@ class TaskPoolManager : DispatcherBase() {
 
     override fun init() {
         scope.launch(checkContext) {
-            while (true) {
+            while (true)
                 select<Unit> {
-                    checkTrigger.onReceive {
-                        taskCheck()
-                    }
-                    checkTicker.onReceive {
-                        taskCheck()
-                    }
+                    checkTrigger.onReceive { taskCheck() }
+                    checkTicker.onReceive { taskCheck() }
                 }
-            }
         }
         loadConfig()
     }
