@@ -13,7 +13,7 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 @ObsoleteCoroutinesApi
-class TaskTicker: DispatcherBase() {
+class TaskTicker : DispatcherBase() {
     override val eventMonitor by lazy { setOf(TickerEvent::class.java) }
     override fun receiveEvent(event: EventType, args: Any) {
         when (event) {
