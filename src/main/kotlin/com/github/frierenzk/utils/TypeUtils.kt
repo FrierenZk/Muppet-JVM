@@ -1,7 +1,6 @@
 package com.github.frierenzk.utils
 
-import com.google.gson.JsonParseException
-import com.google.gson.JsonParser
+import com.google.gson.*
 
 object TypeUtils {
     inline fun <reified T1, reified T2> castPairs(args: Pair<*, *>): Pair<T1?, T2?> {
@@ -18,6 +17,23 @@ object TypeUtils {
         return dstMap
     }
 
+    fun castJsonPrimitive(jsonPrimitive: JsonPrimitive):Any {
+        return when {
+            jsonPrimitive.isBoolean -> jsonPrimitive.asBoolean
+            jsonPrimitive.isNumber -> jsonPrimitive.asNumber
+            jsonPrimitive.isString -> jsonPrimitive.asString
+            else -> ""
+        }
+    }
+
+    fun castIntoJsonObject(jsonElement:JsonElement):JsonObject {
+        return jsonElement.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+    }
+
+    fun castIntoJsonArray(jsonElement:JsonElement):JsonArray {
+        return jsonElement.takeIf { it.isJsonArray }?.asJsonArray ?: JsonArray()
+    }
+
     fun isJsonArrayOrObject(json: String): Boolean {
         return try {
             JsonParser.parseString(json).let {
@@ -27,4 +43,6 @@ object TypeUtils {
             false
         }
     }
+
+
 }

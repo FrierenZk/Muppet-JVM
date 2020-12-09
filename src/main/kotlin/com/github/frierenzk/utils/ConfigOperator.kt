@@ -1,6 +1,8 @@
 package com.github.frierenzk.utils
 
 import com.github.frierenzk.task.BuildConfig
+import com.github.frierenzk.utils.TypeUtils.castIntoJsonObject
+import com.github.frierenzk.utils.TypeUtils.castJsonPrimitive
 import com.google.gson.*
 import java.io.File
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -52,24 +54,14 @@ object ConfigOperator {
     private val buildConfigFile by lazy { ConfigFile("build_configs.json") }
     private val buildListFile by lazy { ConfigFile("build_list.json") }
 
-    private fun castJsonPrimitive(jsonPrimitive: JsonPrimitive):Any {
-        return when {
-            jsonPrimitive.isBoolean -> jsonPrimitive.asBoolean
-            jsonPrimitive.isNumber -> jsonPrimitive.asNumber
-            jsonPrimitive.isString -> jsonPrimitive.asString
-            else -> ""
-        }
-    }
-
     fun loadServerConfig(): JsonObject {
-        val jsonObject =
-            loadFile(serverFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        val jsonObject = castIntoJsonObject(loadFile(serverFile))
         if (!jsonObject.has("port")) jsonObject.addProperty("port", 21518)
         return jsonObject
     }
 
     fun loadTickerConfig(): HashMap<String, HashMap<String, Any>> {
-        val jsonObject = loadFile(timerFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        val jsonObject = castIntoJsonObject(loadFile(timerFile))
         val ret = hashMapOf<String, HashMap<String, Any>>()
         jsonObject.entrySet().forEach { (name, subObj) ->
             if (subObj.isJsonObject) subObj.asJsonObject.entrySet().forEach { (key, value) ->
@@ -81,7 +73,7 @@ object ConfigOperator {
     }
 
     fun loadBuildConfigs(): JsonObject {
-        return loadFile(buildConfigFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        return castIntoJsonObject(loadFile(buildConfigFile))
     }
 
     fun saveBuildConfigs(jsonObject: JsonObject) {
@@ -90,10 +82,9 @@ object ConfigOperator {
 
     fun loadBuildList(): HashMap<String, BuildConfig> {
         val configs = hashMapOf<String, BuildConfig>()
-        val jsonObject =
-            loadFile(buildListFile).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+        val jsonObject = castIntoJsonObject(loadFile(buildListFile))
         jsonObject.entrySet().forEach { (_, jsonElement) ->
-            val obj = jsonElement.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
+            val obj = castIntoJsonObject(jsonElement)
             obj.entrySet().forEach { (_, data) ->
                 val config: BuildConfig? = gson.fromJson(data, BuildConfig::class.java)
                 if (config is BuildConfig) configs[config.name] = config
