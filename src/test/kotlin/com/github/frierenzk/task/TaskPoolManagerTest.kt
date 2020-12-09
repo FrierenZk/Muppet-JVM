@@ -5,14 +5,17 @@ import com.github.frierenzk.server.ServerEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
 import java.io.File
 
 @ObsoleteCoroutinesApi
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class TaskPoolManagerTest {
-    private val pool by lazy { TaskPoolManager() }
+    private val pool by lazy { TaskPoolManager().apply { init() } }
 
     @Test
     @Order(1)
