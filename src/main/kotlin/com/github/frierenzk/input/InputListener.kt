@@ -12,7 +12,7 @@ import java.util.*
 
 @ObsoleteCoroutinesApi
 class InputListener:DispatcherBase() {
-    private val inputContext = newSingleThreadContext("com/github/frierenzk/input")
+    private val inputContext by lazy { newSingleThreadContext("input") }
     private val handlerContext by lazy { newSingleThreadContext("handler") }
     override val eventMonitor by lazy { setOf(InputEvent::class.java) }
     internal var reader = Scanner(System.`in`)
@@ -41,7 +41,7 @@ class InputListener:DispatcherBase() {
             "reload" -> raiseEvent(PoolEvent.ReloadConfig, 0)
             "execute" -> {
                 val args = list.getOrNull(1)
-                if (args is String) raiseEvent(PoolEvent.AddTask, Pair(null, hashMapOf("name" to args)))
+                if (args is String) raiseEvent(PoolEvent.AddTask, hashMapOf("name" to args))
             }
             "stop" -> {
                 val args = list.getOrNull(1)

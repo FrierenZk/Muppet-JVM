@@ -41,14 +41,14 @@ class TaskPoolManager : DispatcherBase() {
             is PoolEvent ->
                 when (event) {
                     PoolEvent.Default -> println("$event shouldn't be used")
-                    PoolEvent.AddTask -> if (args is Pair<*, *>) createNewTask(args)
+                    PoolEvent.AddTask -> if (args is HashMap<*, *>) createNewTask(args)
                     PoolEvent.StopTask -> if (args is Pair<*, *>) stopTask(args)
                     PoolEvent.AvailableList -> getAvailableList(args)
                     PoolEvent.WaitingList -> getWaitingList(args)
                     PoolEvent.WorkingList -> getWorkingList(args)
-                    PoolEvent.TaskStatus -> getTaskStatus(args)
+                    PoolEvent.TaskStatus -> if (args is Pair<*, *>) getTaskStatus(args)
                     PoolEvent.ReloadConfig -> loadConfig()
-                    PoolEvent.CreateTask -> createNewCheckOutTask(args)
+                    PoolEvent.CreateTask -> if (args is HashMap<*, *>) createNewCheckOutTask(args)
                     else -> println(event)
                 }
         }
@@ -92,10 +92,11 @@ class TaskPoolManager : DispatcherBase() {
         super.closeEvent()
     }
 
-    private fun createNewTask(args: Pair<*,*>) {
-        val (uuid,paras) = castPairs<UUID,HashMap<String,String>>(args)
-        val name = paras?.get("name")?:""
-        val conf = configLock.read {
+    private fun createNewTask(args: HashMap<*,*>) {
+        val paras = castMap<String, Any>(args)
+        val uuid: UUID? = paras["uuid"]?.let { it as? UUID }
+        val name = paras["name"]?.let { it as? String } ?: ""
+        val conf: BuildConfig? = configLock.read {
             if (config.containsKey(name))
                 config[name]
             else null
@@ -104,9 +105,7 @@ class TaskPoolManager : DispatcherBase() {
             if (taskPool.containsKey(name)) {
                 printlnWithPushLogs(name, "Target task duplicated")
             } else {
-                if (paras is HashMap<String, String>) paras.forEach { (key, value) ->
-                    conf.extraParas[key] = value
-                }
+                conf.extraParas.putAll(paras)
                 taskPool[name] = CompileTask().apply {
                     create(conf)
                     onPush = fun(line: String) {
@@ -118,8 +117,7 @@ class TaskPoolManager : DispatcherBase() {
                 }
                 runBlocking {
                     checkTrigger.send("")
-                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, Pair(uuid,name))
-                    if (paras is HashMap<String, String>) printlnWithPushLogs(name, "timer Triggered")
+                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, Pair(uuid, name))
                 }
             }
         } else {
@@ -127,14 +125,14 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun createNewCheckOutTask(args: Any) {
+    private fun createNewCheckOutTask(args: HashMap<*,*>) {
         var uuid: UUID? = null
         val push = fun(status: Boolean, msg: String) = runBlocking {
             val data = "[Create][${calendarFormatter.format(Calendar.getInstance().time)}]: $msg"
             println(data)
             raiseEvent(ServerEvent.CreateTask, Pair(uuid, mapOf("status" to status, "msg" to data)))
         }
-        val map = castMap<String, Any>(args as? HashMap<*, *> ?: hashMapOf(0 to 0))
+        val map = castMap<String, Any>(args)
         try {
             val name = map["name"] as String
             val category = map["category"] as String
@@ -143,7 +141,7 @@ class TaskPoolManager : DispatcherBase() {
             val projectDir = map["projectDir"] as? String ?: ""
             val uploadPath = map["uploadPath"] as? String ?: ""
             val sourcePath = map["sourcePath"] as? String ?: ""
-            uuid = map["UUID"] as? UUID
+            uuid = map["uuid"]?.let { it as? UUID }
             if (config.containsKey(name)) {
                 push.invoke(false, "Already had task $name, please change another name")
                 return

@@ -48,9 +48,9 @@ class TaskTicker: DispatcherBase() {
                 val interval = taskParas[task]?.get("interval").toString().toDoubleOrNull() ?: Double.POSITIVE_INFINITY
                 if (count > interval) {
                     scope.launch(context) {
-                        raiseEvent(PoolEvent.AddTask, Pair(null, taskParas[task]?.filterNot {
-                            it.key == "interval" || it.key == ""
-                        }))
+                        raiseEvent(PoolEvent.AddTask, taskParas[task]?.filterNot {
+                            it.key == "interval" || it.key.isBlank()
+                        } ?: Unit)
                     }
                     1
                 } else count + 1

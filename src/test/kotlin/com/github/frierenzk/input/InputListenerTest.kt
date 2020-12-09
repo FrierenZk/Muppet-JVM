@@ -72,8 +72,8 @@ internal class InputListenerTest {
         assertEquals(PoolEvent.ReloadConfig, listener.raisedEvent.receive().first)
         listener.raisedEvent.receive().let {
             assertEquals(PoolEvent.AddTask, it.first)
-            val pair = it.second as Pair<*, *>
-            assertEquals("1234", castMap<String, String>(pair.second as HashMap<*, *>)["name"])
+            val pair = it.second as HashMap<*, *>
+            assertEquals("1234", castMap<String, Any>(pair)["name"])
         }
         listener.raisedEvent.receive().let {
             assertEquals(PoolEvent.StopTask, it.first)

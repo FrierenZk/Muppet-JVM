@@ -7,11 +7,13 @@ import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.task.TaskStatus
 import com.github.frierenzk.utils.ConfigOperator
+import com.github.frierenzk.utils.TypeUtils.castIntoJsonObject
+import com.github.frierenzk.utils.TypeUtils.castJsonPrimitive
 import com.github.frierenzk.utils.TypeUtils.castPairs
 import com.github.frierenzk.utils.TypeUtils.isJsonArrayOrObject
 import com.google.gson.GsonBuilder
-import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import java.net.BindException
@@ -127,12 +129,12 @@ class Linkage: DispatcherBase() {
             ack.sendAckData("OK")
             runBlocking {
                 if (isJsonArrayOrObject(data)) {
-                    val jsonObject =
-                        JsonParser.parseString(data).takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
-                    val map = hashMapOf<String, String>()
-                    jsonObject.entrySet().forEach { (key, value) -> map[key] = value.asString }
-                    raiseEvent(PoolEvent.AddTask, Pair(client.sessionId, map))
-                } else raiseEvent(PoolEvent.AddTask, Pair(client.sessionId, hashMapOf("name" to data)))
+                    val jsonObject = castIntoJsonObject(JsonParser.parseString(data))
+                    val map = hashMapOf<String, Any>("uuid" to client.sessionId)
+                    jsonObject.entrySet()
+                        .forEach { (key, value) -> if (value is JsonPrimitive) map[key] = castJsonPrimitive(value) }
+                    raiseEvent(PoolEvent.AddTask, map)
+                } else raiseEvent(PoolEvent.AddTask, hashMapOf("name" to data, "uuid" to client.sessionId))
             }
         }
         server.addEventListener("set_stop_task", String::class.java) { client, data, ack ->
@@ -170,15 +172,12 @@ class Linkage: DispatcherBase() {
             runBlocking {
                 val args = hashMapOf<String, Any>()
                 if (isJsonArrayOrObject(data)) {
-                    val jsonObject =
-                        JsonParser.parseString(data)?.takeIf { it.isJsonObject }?.asJsonObject ?: JsonObject()
-                    jsonObject.entrySet()
-                        ?.forEach { (key, value) ->
-                            val str = value.asString
-                            if (key is String && str is String) {
-                                args[key] = str
-                            }
+                    val jsonObject = castIntoJsonObject(JsonParser.parseString(data))
+                    jsonObject.entrySet().forEach { (key, value) ->
+                        if (value is JsonPrimitive) {
+                            args[key] = castJsonPrimitive(value)
                         }
+                    }
                 }
                 args["uuid"] = client.sessionId
                 raiseEvent(PoolEvent.CreateTask, args)
