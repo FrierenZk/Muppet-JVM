@@ -66,13 +66,11 @@ class BuildList {
                 }
             ),
             "tags" to sortedMapOf(
-                "armenia" to BuildConfig().apply {
+                "armenia-1.0" to BuildConfig().apply {
                     profile = "catv_armenia_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
-                    projectDir = "armenia-1.0"
                 },
-                "guangxi" to BuildConfig().apply {
+                "guangxi-1.0" to BuildConfig().apply {
                     profile = "catv_guangxi_nocolor_hgu_xpon_wifi_cable_voice_usb"
-                    projectDir = "guangxi-1.0"
                 },
                 "hunan-3.0" to BuildConfig().apply {
                     profile = "catv_hunan_nocolor_hgu_xpon_wifi_cable_voice_nousb"
@@ -127,6 +125,9 @@ class BuildList {
                 },
                 "FDT_dongyan_uGrid" to BuildConfig().apply {
                     profile = "catv_dongyanUgrid_black_hgu_gpon_wifi_cable_novoice_usb"
+                },
+                "FDT_dongyan_gpon_neutral" to BuildConfig().apply {
+                    profile = "catv_dongyanNeutral_black_hgu_gpon_wifi_cable_novoice_usb"
                 }
             ),
             "7528" to sortedMapOf(
