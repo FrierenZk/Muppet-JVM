@@ -15,11 +15,10 @@ private val handlerCollections by lazy { HashSet<DispatcherInterface>() }
 
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
-    launch { handlerCollections.add(TaskPoolManager()) }
-    launch { handlerCollections.add(Linkage()) }
-    launch { handlerCollections.add(InputListener()) }
-    launch { handlerCollections.add(TaskTicker()) }
-    handlerCollections.forEach { launch { it.init() } }
+    launch { handlerCollections.add(TaskPoolManager().apply { init() }) }
+    launch { handlerCollections.add(Linkage().apply { init() }) }
+    launch { handlerCollections.add(InputListener().apply { init() }) }
+    launch { handlerCollections.add(TaskTicker().apply { init() }) }
 }
 
 private suspend fun handleEvent(event: EventType, args: Any) {
