@@ -21,7 +21,8 @@ class CreateNewCompileTask : CompileTask() {
             "profile" to fun(data: String) { config.profile = data },
             "uploadPath" to fun(data: String) { config.uploadPath = data },
             "projectDir" to fun(data: String) { config.projectDir = data },
-            "sourcePath" to fun(data: String) { config.projectDir = data },
+            "sourcePath" to fun(data: String) { config.sourcePath = data },
+            "svnBasePath" to fun(data: String) { config.svnBasePath = data },
             "svn" to fun(_: String) {}
         )
         map.forEach { (key, value) ->
