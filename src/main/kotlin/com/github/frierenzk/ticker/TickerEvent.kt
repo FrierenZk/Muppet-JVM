@@ -4,5 +4,9 @@ import com.github.frierenzk.dispatcher.EventType
 
 enum class TickerEvent : EventType {
     Default,
-    Reset
+    Reset,
+    AddTimer,
+    ModifyInterval,
+    Enable,
+    Disable
 }
