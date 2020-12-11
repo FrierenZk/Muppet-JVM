@@ -66,10 +66,14 @@ object ConfigOperator {
         jsonObject.entrySet().forEach { (name, subObj) ->
             if (subObj.isJsonObject) subObj.asJsonObject.entrySet().forEach { (key, value) ->
                 if (value.isJsonPrimitive) ret.getOrPut(name) { hashMapOf() }[key] =
-                    castJsonPrimitive(value.asJsonPrimitive)
+                    castJsonPrimitive(value.asJsonPrimitive).let { if (it is Number) it.toInt() else it }
             }
         }
         return HashMap(ret.filter { it.value.containsKey("interval") })
+    }
+
+    fun saveTickerConfig(configs: HashMap<String, HashMap<String, Any>>) {
+        saveFile(timerFile, gson.toJsonTree(configs))
     }
 
     fun loadBuildConfigs(): JsonObject {
