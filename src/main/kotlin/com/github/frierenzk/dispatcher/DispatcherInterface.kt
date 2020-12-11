@@ -8,5 +8,6 @@ interface DispatcherInterface {
     val context: ExecutorCoroutineDispatcher
     val eventMonitor: Set<Class<out Any>>
     suspend fun sendEvent(event: EventType, args: Any)
+    fun init()
     fun close()
 }

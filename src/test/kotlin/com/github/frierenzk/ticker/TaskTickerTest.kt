@@ -27,7 +27,7 @@ internal class TaskTickerTest {
             this.flush()
             this.close()
         }
-        val ticker = TaskTicker()
+        val ticker = TaskTicker().apply { init() }
         runBlocking {
             ticker.sendEvent(TickerEvent.Reset, 0)
             delay(2000)

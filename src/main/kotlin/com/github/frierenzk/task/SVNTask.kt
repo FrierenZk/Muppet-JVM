@@ -1,7 +1,9 @@
 package com.github.frierenzk.task
 
 import com.github.frierenzk.utils.ShellUtils
-import java.io.*
+import java.io.BufferedReader
+import java.io.File
+import java.io.StringReader
 import java.net.URI
 
 sealed class SVNTask {

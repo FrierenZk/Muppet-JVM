@@ -4,7 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
 @ObsoleteCoroutinesApi
-abstract class DispatcherBase: DispatcherInterface {
+abstract class DispatcherBase : DispatcherInterface {
     final override val context by lazy {
         newSingleThreadContext(this::class.simpleName!!).also {
             println(this::class.simpleName)

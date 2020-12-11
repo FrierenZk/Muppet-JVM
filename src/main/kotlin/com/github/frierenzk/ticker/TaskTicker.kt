@@ -13,7 +13,7 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 @ObsoleteCoroutinesApi
-class TaskTicker: DispatcherBase() {
+class TaskTicker : DispatcherBase() {
     override val eventMonitor by lazy { setOf(TickerEvent::class.java) }
     override fun receiveEvent(event: EventType, args: Any) {
         when (event) {
@@ -32,6 +32,7 @@ class TaskTicker: DispatcherBase() {
 
     private fun reset() {
         val configs = ConfigOperator.loadTickerConfig()
+        configs.forEach { (t, u) -> u["name"] = t }
         println(configs)
         lock.write {
             tasks.clear()
@@ -47,9 +48,9 @@ class TaskTicker: DispatcherBase() {
                 val interval = taskParas[task]?.get("interval").toString().toDoubleOrNull() ?: Double.POSITIVE_INFINITY
                 if (count > interval) {
                     scope.launch(context) {
-                        raiseEvent(PoolEvent.AddTask, Pair(task, taskParas[task]?.filterNot {
-                            it.key == "interval" || it.key == "" || it.key == "name"
-                        }))
+                        raiseEvent(PoolEvent.AddTask, taskParas[task]?.filterNot {
+                            it.key == "interval" || it.key.isBlank()
+                        } ?: Unit)
                     }
                     1
                 } else count + 1
@@ -57,7 +58,13 @@ class TaskTicker: DispatcherBase() {
         }
     }
 
-    init {
+    override fun closeEvent() {
+        tickerContext.close()
+        ticker.cancel()
+        super.closeEvent()
+    }
+
+    override fun init() {
         reset()
         scope.launch(tickerContext) {
             while (true) {

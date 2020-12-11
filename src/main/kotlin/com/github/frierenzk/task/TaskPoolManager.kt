@@ -4,6 +4,8 @@ import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.server.ServerEvent
 import com.github.frierenzk.utils.ConfigOperator
+import com.github.frierenzk.utils.TypeUtils.castMap
+import com.github.frierenzk.utils.TypeUtils.castPairs
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
@@ -39,14 +41,14 @@ class TaskPoolManager : DispatcherBase() {
             is PoolEvent ->
                 when (event) {
                     PoolEvent.Default -> println("$event shouldn't be used")
-                    PoolEvent.AddTask -> createNewTask(args)
-                    PoolEvent.StopTask -> stopTask(args)
+                    PoolEvent.AddTask -> if (args is HashMap<*, *>) createNewTask(args)
+                    PoolEvent.StopTask -> if (args is Pair<*, *>) stopTask(args)
                     PoolEvent.AvailableList -> getAvailableList(args)
                     PoolEvent.WaitingList -> getWaitingList(args)
                     PoolEvent.WorkingList -> getWorkingList(args)
-                    PoolEvent.TaskStatus -> getTaskStatus(args)
+                    PoolEvent.TaskStatus -> if (args is Pair<*, *>) getTaskStatus(args)
                     PoolEvent.ReloadConfig -> loadConfig()
-                    PoolEvent.CreateTask -> createNewCheckOutTask(args)
+                    PoolEvent.CreateTask -> if (args is HashMap<*, *>) createNewCheckOutTask(args)
                     else -> println(event)
                 }
         }
@@ -83,38 +85,18 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private inline fun <reified T1, reified T2> castPairs(args: Pair<*, *>): Pair<T1?, T2?> {
-        val (key, value) = args
-        return if (key is T1 && value is T2) Pair(key, value)
-        else Pair(null, null)
+    override fun closeEvent() {
+        checkContext.close()
+        checkTicker.cancel()
+        checkTrigger.close()
+        super.closeEvent()
     }
 
-    private inline fun <reified T1, reified T2> castMap(args: HashMap<*, *>): HashMap<T1, T2> {
-        val dstMap = hashMapOf<T1, T2>()
-        args.forEach { (key, value) ->
-            if (key is T1 && value is T2) dstMap[key] = value
-        }
-        return dstMap
-    }
-
-    private fun createNewTask(arg: Any) {
-        var uuid: UUID? = null
-        var paras: HashMap<*, *>? = null
-        val name = when (arg) {
-            is String -> arg
-            is Pair<*, *> -> {
-                val (first, second) = arg
-                if (first is UUID && second is String) {
-                    uuid = first
-                    second
-                } else if (first is String && second is HashMap<*, *>) {
-                    paras = second
-                    first
-                } else ""
-            }
-            else -> ""
-        }
-        val conf = configLock.read {
+    private fun createNewTask(args: HashMap<*, *>) {
+        val paras = castMap<String, Any>(args)
+        val uuid: UUID? = paras["uuid"]?.let { it as? UUID }
+        val name = paras["name"]?.let { it as? String } ?: ""
+        val conf: BuildConfig? = configLock.read {
             if (config.containsKey(name))
                 config[name]
             else null
@@ -123,10 +105,7 @@ class TaskPoolManager : DispatcherBase() {
             if (taskPool.containsKey(name)) {
                 printlnWithPushLogs(name, "Target task duplicated")
             } else {
-                if (paras is HashMap<*, *>) paras.forEach { (key, value) ->
-                    if (key is String && value != null)
-                        conf.extraParas[key] = value
-                }
+                conf.extraParas.putAll(paras)
                 taskPool[name] = CompileTask().apply {
                     create(conf)
                     onPush = fun(line: String) {
@@ -138,8 +117,7 @@ class TaskPoolManager : DispatcherBase() {
                 }
                 runBlocking {
                     checkTrigger.send("")
-                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, arg)
-                    if (paras is HashMap<*, *>) printlnWithPushLogs(name, "timer Triggered")
+                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, Pair(uuid, name))
                 }
             }
         } else {
@@ -147,33 +125,25 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun createNewCheckOutTask(args: Any) {
+    private fun createNewCheckOutTask(args: HashMap<*, *>) {
         var uuid: UUID? = null
         val push = fun(status: Boolean, msg: String) = runBlocking {
             val data = "[Create][${calendarFormatter.format(Calendar.getInstance().time)}]: $msg"
             println(data)
             raiseEvent(ServerEvent.CreateTask, Pair(uuid, mapOf("status" to status, "msg" to data)))
         }
-        val map = castMap<String, Any>(args as? HashMap<*, *> ?: hashMapOf(0 to 0))
+        val map = castMap<String, Any>(args)
         try {
             val name = map["name"] as String
-            val category = map["category"] as String
-            val profile = map["profile"] as String
-            val svn = map["svn"] as String
-            val projectDir = map["projectDir"] as? String ?: ""
-            val uploadPath = map["uploadPath"] as? String ?: ""
-            val sourcePath = map["sourcePath"] as? String ?: ""
-            uuid = map["UUID"] as? UUID
+            uuid = map["uuid"]?.let { it as? UUID }
             if (config.containsKey(name)) {
                 push.invoke(false, "Already had task $name, please change another name")
                 return
             }
             val task = CreateNewCompileTask()
             var conf: BuildConfig? = null
-            task.onSave = {
-                conf = it
-            }
-            val (result, rev) = task.create(name, category, profile, svn, projectDir, uploadPath, sourcePath)
+            task.onSave = { conf = it }
+            val (result, rev) = task.create(map)
             if (!result) {
                 push.invoke(false, "Task Failed to create, with $rev")
                 return
@@ -203,12 +173,8 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun stopTask(args: Any) = runBlocking {
-        val (uuid: UUID?, name: String?) = when (args) {
-            is String -> Pair(null, args)
-            is Pair<*, *> -> castPairs<UUID, String>(args)
-            else -> Pair(null, null)
-        }
+    private fun stopTask(args: Pair<*, *>) = runBlocking {
+        val (uuid, name) = castPairs<UUID, String>(args)
         if (name is String)
             if (taskPool.containsKey(name)) {
                 taskPool[name]?.stop()
@@ -264,18 +230,13 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    init {
+    override fun init() {
         scope.launch(checkContext) {
-            while (true) {
+            while (true)
                 select<Unit> {
-                    checkTrigger.onReceive {
-                        taskCheck()
-                    }
-                    checkTicker.onReceive {
-                        taskCheck()
-                    }
+                    checkTrigger.onReceive { taskCheck() }
+                    checkTicker.onReceive { taskCheck() }
                 }
-            }
         }
         loadConfig()
     }

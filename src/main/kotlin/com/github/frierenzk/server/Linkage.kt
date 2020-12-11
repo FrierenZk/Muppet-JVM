@@ -7,15 +7,20 @@ import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.task.TaskStatus
 import com.github.frierenzk.utils.ConfigOperator
+import com.github.frierenzk.utils.TypeUtils.castIntoJsonObject
+import com.github.frierenzk.utils.TypeUtils.castJsonPrimitive
+import com.github.frierenzk.utils.TypeUtils.castPairs
+import com.github.frierenzk.utils.TypeUtils.isJsonArrayOrObject
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonParser
+import com.google.gson.JsonPrimitive
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.runBlocking
 import java.net.BindException
 import java.util.*
 
 @ObsoleteCoroutinesApi
-class Linkage: DispatcherBase() {
+class Linkage : DispatcherBase() {
     override val eventMonitor = setOf(ServerEvent::class.java)
     private val port by lazy { ConfigOperator.loadServerConfig().get("port").asInt }
     private lateinit var server: SocketIOServer
@@ -41,7 +46,7 @@ class Linkage: DispatcherBase() {
     }
 
     private fun completionNotify(args: Pair<*, *>, event: ServerEvent) {
-        val (uuid, name) = args
+        val (uuid, name) = castPairs<UUID, String>(args)
         if (uuid is UUID && name is String) {
             when (event) {
                 ServerEvent.AddTask ->
@@ -54,7 +59,7 @@ class Linkage: DispatcherBase() {
     }
 
     private fun sendList(args: Pair<*, *>, event: ServerEvent) {
-        val (uuid, list) = args
+        val (uuid, list) = castPairs<UUID, Any>(args)
         if (uuid is UUID && list != null) {
             val data = gson.toJson(list, list::class.java)!!
             when (event) {
@@ -73,7 +78,7 @@ class Linkage: DispatcherBase() {
     }
 
     private fun broadCastStatus(args: Pair<*, *>) = runBlocking {
-        val (name, status) = args
+        val (name, status) = castPairs<String, TaskStatus>(args)
         val data = gson.toJson(
             mapOf(
                 "task" to name,
@@ -91,7 +96,7 @@ class Linkage: DispatcherBase() {
     }
 
     private fun broadCast(args: Pair<*, *>) = runBlocking {
-        val (name, msg) = args
+        val (name, msg) = castPairs<String, String>(args)
         if (name is String && msg is String) {
             val data = gson.toJson(mapOf("task" to name, "broadcast_logs" to msg))!!
             server.broadcastOperations?.sendEvent("broadcast_logs", data)
@@ -99,9 +104,9 @@ class Linkage: DispatcherBase() {
     }
 
     private fun sendCreateTaskMsg(args: Pair<*, *>) {
-        val (uuid, msg) = args
-        if (uuid is UUID && msg != null) {
-            val data = gson.toJson(msg, msg::class.java)
+        val (uuid, msg) = castPairs<UUID, String>(args)
+        if (uuid is UUID && msg is String) {
+            val data = gson.toJson(msg)
             server.getClient(uuid)?.sendEvent("create_task_message", data)
         }
     }
@@ -120,43 +125,58 @@ class Linkage: DispatcherBase() {
         server.addDisconnectListener { client ->
             println("${client.sessionId} disconnected")
         }
-        server.addEventListener("set_add_task", String::class.java) { client, data, _ ->
+        server.addEventListener("set_add_task", String::class.java) { client, data, ack ->
+            ack.sendAckData("OK")
             runBlocking {
-                raiseEvent(PoolEvent.AddTask, Pair(client.sessionId, data))
+                if (isJsonArrayOrObject(data)) {
+                    val jsonObject = castIntoJsonObject(JsonParser.parseString(data))
+                    val map = hashMapOf<String, Any>("uuid" to client.sessionId)
+                    jsonObject.entrySet()
+                        .forEach { (key, value) -> if (value is JsonPrimitive) map[key] = castJsonPrimitive(value) }
+                    raiseEvent(PoolEvent.AddTask, map)
+                } else raiseEvent(PoolEvent.AddTask, hashMapOf("name" to data, "uuid" to client.sessionId))
             }
         }
-        server.addEventListener("set_stop_task", String::class.java) { client, data, _ ->
+        server.addEventListener("set_stop_task", String::class.java) { client, data, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 raiseEvent(PoolEvent.StopTask, Pair(client.sessionId, data))
             }
         }
-        server.addEventListener("get_waiting_list", Any::class.java) { client, _, _ ->
+        server.addEventListener("get_waiting_list", Any::class.java) { client, _, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 raiseEvent(PoolEvent.WaitingList, client.sessionId)
             }
         }
-        server.addEventListener("get_processing_list", Any::class.java) { client, _, _ ->
+        server.addEventListener("get_processing_list", Any::class.java) { client, _, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 raiseEvent(PoolEvent.WorkingList, client.sessionId)
             }
         }
-        server.addEventListener("get_available_list", Any::class.java) { client, _, _ ->
+        server.addEventListener("get_available_list", Any::class.java) { client, _, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 raiseEvent(PoolEvent.AvailableList, client.sessionId)
             }
         }
-        server.addEventListener("reload_config", Any::class.java) { client, _, _ ->
+        server.addEventListener("reload_config", Any::class.java) { client, _, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 raiseEvent(PoolEvent.ReloadConfig, client.sessionId)
             }
         }
-        server.addEventListener("set_create_task", String::class.java) { client, data, _ ->
+        server.addEventListener("set_create_task", String::class.java) { client, data, ack ->
+            ack.sendAckData("OK")
             runBlocking {
                 val args = hashMapOf<String, Any>()
-                JsonParser.parseString(data)?.asJsonObject?.entrySet()?.forEach { (key, value) ->
-                    val str = value.asString
-                    if (key is String && str is String) {
-                        args[key] = str
+                if (isJsonArrayOrObject(data)) {
+                    val jsonObject = castIntoJsonObject(JsonParser.parseString(data))
+                    jsonObject.entrySet().forEach { (key, value) ->
+                        if (value is JsonPrimitive) {
+                            args[key] = castJsonPrimitive(value)
+                        }
                     }
                 }
                 args["uuid"] = client.sessionId
@@ -171,7 +191,7 @@ class Linkage: DispatcherBase() {
         super.closeEvent()
     }
 
-    init {
+    override fun init() {
         try {
             runServer()
         } catch (exception: BindException) {

@@ -3,6 +3,7 @@ package com.github.frierenzk.task
 import com.github.frierenzk.utils.ConfigOperator
 import java.nio.file.Path
 
+@Suppress("SpellCheckingInspection")
 class BuildConfig {
     companion object {
         private val uploadAddress by lazy { configs.get("uploadAddress").asString!! }

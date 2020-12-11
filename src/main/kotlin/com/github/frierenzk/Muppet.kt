@@ -4,7 +4,6 @@ import com.github.frierenzk.dispatcher.DispatcherInterface
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.input.InputListener
 import com.github.frierenzk.server.Linkage
-import com.github.frierenzk.task.BuildConfig
 import com.github.frierenzk.task.TaskPoolManager
 import com.github.frierenzk.ticker.TaskTicker
 import kotlinx.coroutines.*
@@ -16,10 +15,10 @@ private val handlerCollections by lazy { HashSet<DispatcherInterface>() }
 
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
-    launch { handlerCollections.add(TaskPoolManager()) }
-    launch { handlerCollections.add(Linkage()) }
-    launch { handlerCollections.add(InputListener()) }
-    launch { handlerCollections.add(TaskTicker()) }
+    launch { handlerCollections.add(TaskPoolManager().apply { init() }) }
+    launch { handlerCollections.add(Linkage().apply { init() }) }
+    launch { handlerCollections.add(InputListener().apply { init() }) }
+    launch { handlerCollections.add(TaskTicker().apply { init() }) }
 }
 
 private suspend fun handleEvent(event: EventType, args: Any) {

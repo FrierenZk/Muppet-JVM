@@ -5,14 +5,17 @@ import com.github.frierenzk.server.ServerEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.MethodOrderer
+import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestMethodOrder
 import java.io.File
 
 @ObsoleteCoroutinesApi
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class TaskPoolManagerTest {
-    private val pool by lazy { TaskPoolManager() }
+    private val pool by lazy { TaskPoolManager().apply { init() } }
 
     @Test
     @Order(1)
@@ -64,15 +67,15 @@ internal class TaskPoolManagerTest {
     @Test
     @Order(7)
     fun setAddTask() = runBlocking {
-        pool.sendEvent(PoolEvent.AddTask, "1111")
-        pool.sendEvent(PoolEvent.AddTask, "wifi6_new")
+        pool.sendEvent(PoolEvent.AddTask, hashMapOf("name" to "1111"))
+        pool.sendEvent(PoolEvent.AddTask, hashMapOf("name" to "wifi6"))
         delay(1000)
     }
 
     @Test
     @Order(8)
     fun getStatus() = runBlocking {
-        pool.sendEvent(PoolEvent.TaskStatus, "wifi6")
+        pool.sendEvent(PoolEvent.TaskStatus, Pair(null, "wifi6"))
         val (event, args) = pool.raisedEvent.receive()
         assertEquals(ServerEvent.Status, event)
         println(args)
@@ -81,10 +84,10 @@ internal class TaskPoolManagerTest {
     @Test
     @Order(9)
     fun setStopTask() = runBlocking {
-        pool.sendEvent(PoolEvent.StopTask, "1111")
-        pool.sendEvent(PoolEvent.AddTask, "wifi6")
+        pool.sendEvent(PoolEvent.StopTask, Pair(null, "1111"))
+        pool.sendEvent(PoolEvent.AddTask, hashMapOf("name" to "wifi6"))
         delay(50)
-        pool.sendEvent(PoolEvent.StopTask, "wifi6")
+        pool.sendEvent(PoolEvent.StopTask, Pair(null, "wifi6"))
         delay(1000)
     }
 

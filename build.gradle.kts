@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.github.frierenzk"
-version = "0.2.2".let {
+version = "0.2.3".let {
     "$it${if (getGitID().isBlank()) "unknown" else "-${getGitID()}"}"
 }
 
@@ -21,6 +21,7 @@ dependencies {
 
     testImplementation(platform("org.junit:junit-bom:5.7.0"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation("io.socket", "socket.io-client", "1.0.0")
 }
 
 tasks.test {
