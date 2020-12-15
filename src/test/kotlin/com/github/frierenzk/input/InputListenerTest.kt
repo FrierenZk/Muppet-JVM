@@ -1,8 +1,8 @@
 package com.github.frierenzk.input
 
 import com.github.frierenzk.MEvent
+import com.github.frierenzk.dispatcher.Pipe
 import com.github.frierenzk.task.PoolEvent
-import com.github.frierenzk.utils.TypeUtils.castMap
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.MethodOrderer
@@ -28,9 +28,9 @@ internal class InputListenerTest {
     @Test
     @Order(2)
     fun receiveEvent() = runBlocking {
-        inputListener.sendEvent(InputEvent.Default, 0)
+        inputListener.sendEvent(InputEvent.Default, Pipe.default)
         delay(1000)
-        inputListener.sendEvent(MEvent.Exit, 0)
+        inputListener.sendEvent(MEvent.Exit, Pipe.default)
         delay(1000)
         assertEquals(true, inputListener.raisedEvent.isEmpty)
     }
@@ -72,13 +72,13 @@ internal class InputListenerTest {
         assertEquals(PoolEvent.ReloadConfig, listener.raisedEvent.receive().first)
         listener.raisedEvent.receive().let {
             assertEquals(PoolEvent.AddTask, it.first)
-            val pair = it.second as HashMap<*, *>
-            assertEquals("1234", castMap<String, Any>(pair)["name"])
+            val pipe = it.second.asPipe<Map<String, Any>, String>()!!
+            assertEquals("1234", pipe.data["name"])
         }
         listener.raisedEvent.receive().let {
             assertEquals(PoolEvent.StopTask, it.first)
-            val pair = it.second as Pair<*, *>
-            assertEquals("5678", pair.second)
+            val pipe = it.second.asPipe<String, String>()!!
+            assertEquals("5678", pipe.data)
         }
         listener.reader.close()
         listener.close()

@@ -32,7 +32,7 @@ class BuildConfig {
             "\$base" to "${Path.of("../..").toFile().toPath()}",
             "\$catv" to "${Path.of("../..").toFile().toPath()}",
             "\$category" to category,
-            "\$name" to (projectDir ?: name),
+            "\$name" to name,
             "\$projectDir" to (projectDir ?: name)
         )
         replaceRule.forEach { (key, value) ->
@@ -53,7 +53,7 @@ class BuildConfig {
             "\$base" to "buildmanager@$uploadAddress:/volume1/version",
             "\$version" to "buildmanager@$uploadAddress:/volume1/version",
             "\$category" to cat,
-            "\$name" to (projectDir ?: name),
+            "\$name" to name,
             "\$projectDir" to (projectDir ?: name)
         )
         replaceRule.forEach { (key, value) ->
@@ -71,7 +71,7 @@ class BuildConfig {
                 "\$catv" to "${Path.of("../..").toFile().toPath()}",
                 "\$source" to getFullSourcePath(),
                 "\$category" to category,
-                "\$name" to (projectDir ?: name),
+                "\$name" to name,
                 "\$projectDir" to (projectDir ?: name)
             )
             replaceRule.forEach { (key, value) ->

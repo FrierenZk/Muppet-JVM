@@ -9,7 +9,7 @@ class CreateNewCompileTask : CompileTask() {
     var onSave: ((BuildConfig) -> Unit)? = null
 
     @ObsoleteCoroutinesApi
-    fun create(map: HashMap<String, Any>): Pair<Boolean, String> {
+    fun create(map: Map<String, Any>): Pair<Boolean, String> {
         val svn = map["svn"]?.let { it as? String } ?: ""
         if (!SVNTask.isURL(svn)) {
             return Pair(false, "Invalid svn url")

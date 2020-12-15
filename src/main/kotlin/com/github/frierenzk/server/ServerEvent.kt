@@ -6,10 +6,10 @@ enum class ServerEvent : EventType {
     Default,
     Status,
     AddTask,
-    StopTask,
     AvailableList,
     WaitingList,
     WorkingList,
     BroadCast,
-    CreateTask
+    UpdateList,
+    TaskFinish
 }

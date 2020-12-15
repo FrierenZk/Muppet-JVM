@@ -3,6 +3,7 @@ package com.github.frierenzk.input
 import com.github.frierenzk.MEvent
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
+import com.github.frierenzk.dispatcher.Pipe
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.ticker.TickerEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -17,7 +18,7 @@ class InputListener : DispatcherBase() {
     override val eventMonitor by lazy { setOf(InputEvent::class.java) }
     internal var reader = Scanner(System.`in`)
 
-    override fun receiveEvent(event: EventType, args: Any) {
+    override fun receiveEvent(event: EventType, args: Pipe<*, *>) {
         when (event) {
             is InputEvent -> when (event) {
                 InputEvent.Default -> println("$event shouldn't be used")
@@ -37,17 +38,20 @@ class InputListener : DispatcherBase() {
             it.isBlank()
         }
         when (list.getOrNull(0)) {
-            "exit" -> raiseEvent(MEvent.Exit, 0.0f)
-            "reload" -> raiseEvent(PoolEvent.ReloadConfig, 0)
+            "exit" -> raiseEvent(MEvent.Exit, Pipe.default)
+            "reload" -> raiseEvent(PoolEvent.ReloadConfig, Pipe.callback<String> {})
             "execute" -> {
                 val args = list.getOrNull(1)
-                if (args is String) raiseEvent(PoolEvent.AddTask, hashMapOf("name" to args))
+                if (args is String) raiseEvent(
+                    PoolEvent.AddTask,
+                    Pipe<HashMap<String, String>, String>(hashMapOf("name" to args)) {}
+                )
             }
             "stop" -> {
                 val args = list.getOrNull(1)
-                if (args is String) raiseEvent(PoolEvent.StopTask, Pair(null, args))
+                if (args is String) raiseEvent(PoolEvent.StopTask, Pipe<String, String>(args) {})
             }
-            "resetTicker" -> raiseEvent(TickerEvent.Reset, 0)
+            "resetTicker" -> raiseEvent(TickerEvent.Reset, Pipe.callback<String> {})
         }
     }
 

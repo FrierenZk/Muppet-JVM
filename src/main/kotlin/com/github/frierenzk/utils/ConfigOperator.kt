@@ -10,7 +10,7 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 object ConfigOperator {
-    private val gson by lazy { GsonBuilder().setPrettyPrinting().create() }
+    val projectGson: Gson by lazy { GsonBuilder().setPrettyPrinting().create() }
     private fun loadFile(file: ConfigFile): JsonElement = file.read {
         return try {
             if (file.exists())
@@ -34,7 +34,7 @@ object ConfigOperator {
         if (file.exists()) file.delete()
         file.createNewFile()
         file.bufferedWriter().run {
-            this.write(gson.toJson(data).let {
+            this.write(projectGson.toJson(data).let {
                 println("File ${file.name} saved ${it.length} Bytes")
                 it
             })
@@ -73,7 +73,7 @@ object ConfigOperator {
     }
 
     fun saveTickerConfig(configs: HashMap<String, HashMap<String, Any>>) {
-        saveFile(timerFile, gson.toJsonTree(configs))
+        saveFile(timerFile, projectGson.toJsonTree(configs))
     }
 
     fun loadBuildConfigs(): JsonObject {
@@ -90,8 +90,22 @@ object ConfigOperator {
         jsonObject.entrySet().forEach { (_, jsonElement) ->
             val obj = castIntoJsonObject(jsonElement)
             obj.entrySet().forEach { (_, data) ->
-                val config: BuildConfig? = gson.fromJson(data, BuildConfig::class.java)
+                val config: BuildConfig? = projectGson.fromJson(data, BuildConfig::class.java)
                 if (config is BuildConfig) configs[config.name] = config
+            }
+        }
+        val check = hashMapOf<String, String>()
+        configs.forEach { (_, value) ->
+            val source = value.getFullSourcePath()
+            if (check.containsKey(source)) {
+                if (value.projectDir == null) {
+                    println(
+                        "[Warning][BuildList]Task ${value.name} sources path is same as ${check[source]}, " +
+                                "please make sure their have same projectDir to avoid crash when parallel working"
+                    )
+                }
+            } else {
+                check[source] = value.name
             }
         }
         return configs
@@ -103,7 +117,7 @@ object ConfigOperator {
             map.getOrPut(conf.category) { hashMapOf() }[conf.name] = conf
         }
         val sort = HashMap<String, JsonElement>()
-        map.forEach { (key, value) -> sort[key] = gson.toJsonTree(value.toSortedMap()) }
-        saveFile(buildListFile, gson.toJsonTree(sort.toSortedMap()))
+        map.forEach { (key, value) -> sort[key] = projectGson.toJsonTree(value.toSortedMap()) }
+        saveFile(buildListFile, projectGson.toJsonTree(sort.toSortedMap()))
     }
 }

@@ -4,7 +4,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
 @ObsoleteCoroutinesApi
-abstract class DispatcherBase : DispatcherInterface {
+abstract class DispatcherBase : IDispatcher {
     final override val context by lazy {
         newSingleThreadContext(this::class.simpleName!!).also {
             println(this::class.simpleName)
@@ -12,19 +12,19 @@ abstract class DispatcherBase : DispatcherInterface {
     }
     val scope by lazy { CoroutineScope(context) }
     protected var status = true
-    private val channel by lazy { Channel<Pair<EventType, Any>>(10) }
-    final override val raisedEvent by lazy { Channel<Pair<EventType, Any>>(10) }
+    private val channel by lazy { Channel<Pair<EventType, Pipe<*, *>>>(10) }
+    final override val raisedEvent by lazy { Channel<Pair<EventType, Pipe<*, *>>>(10) }
     override val eventMonitor: Set<Class<out Any>> by lazy { setOf() }
 
-    final override suspend fun sendEvent(event: EventType, args: Any) {
+    final override suspend fun sendEvent(event: EventType, args: Pipe<*, *>) {
         channel.send(Pair(event, args))
     }
 
-    protected suspend fun raiseEvent(event: EventType, args: Any) {
+    protected suspend fun raiseEvent(event: EventType, args: Pipe<*, *>) {
         raisedEvent.send(Pair(event, args))
     }
 
-    protected open fun receiveEvent(event: EventType, args: Any) {}
+    protected open fun receiveEvent(event: EventType, args: Pipe<*, *>) {}
 
     final override fun close() {
         status = false
