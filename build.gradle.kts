@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.github.frierenzk"
-version = "0.2.4".let {
+version = "0.2.5".let {
     "$it${if (getGitID().isBlank()) "unknown" else "-${getGitID()}"}"
 }
 
@@ -19,8 +19,9 @@ dependencies {
     implementation("com.corundumstudio.socketio","netty-socketio","1.7.18")
     implementation("com.google.code.gson","gson","2.8.6")
 
-    testImplementation(platform("org.junit:junit-bom:5.7.0"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation(kotlin("test-junit5"))
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
     testImplementation("io.socket", "socket.io-client", "1.0.0")
 }
 
