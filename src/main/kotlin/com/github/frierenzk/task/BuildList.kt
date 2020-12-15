@@ -92,11 +92,13 @@ class BuildList {
                 "heilongjian-2.0" to BuildConfig().apply {
                     profile = "catv_heilongjiang_white_hgu_gpon_wifi_nocable_novoice_nousb"
                     sourcePath = "\$default"
+                    projectDir = "heilongjian-2.0"
                 },
                 "heilongjian-2.0-nowifi" to BuildConfig().apply {
                     profile = "catv_heilongjiang_white_hgu_gpon_nowifi_nocable_novoice_nousb"
                     sourcePath = "\$base/\$category/heilongjian-2.0"
                     uploadPath = "\$base/\$category/heilongjian-2.0"
+                    projectDir = "heilongjian-2.0"
                 },
                 "shanxi-1.0" to BuildConfig().apply {
                     profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
@@ -112,7 +114,7 @@ class BuildList {
                 "FDT_henan" to BuildConfig().apply {
                     profile = "catv_henan_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
                 },
-                "ecuador" to BuildConfig().apply {
+                "FDT_ecuador" to BuildConfig().apply {
                     profile = "catv_ecuador_nocolor_hgu_xpon_wifi_cable_voice_usb"
                     projectDir = "FDT_ecuador"
                 },
