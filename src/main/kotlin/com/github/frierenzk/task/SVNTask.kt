@@ -66,8 +66,12 @@ sealed class SVNTask {
         override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", svnPath)) }
             val list = info.inputBuffer.lineSequence().filterNotNull().toList()
-            val rev = list.takeIf { it.isNotEmpty() }
-                ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
+            val rev = try {
+                list.takeIf { it.isNotEmpty() }
+                    ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
+            } catch (exception: NoSuchElementException) {
+                ""
+            }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
             errorBufferedReader = info.errorBuffer ?: BufferedReader(StringReader(""))
             return rev
