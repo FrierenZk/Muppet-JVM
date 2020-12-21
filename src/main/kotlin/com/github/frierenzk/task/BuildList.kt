@@ -33,6 +33,9 @@ class BuildList {
                 "huashu" to BuildConfig().apply {
                     profile = "catv_huashu_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 },
+                "huashu128" to BuildConfig().apply {
+                    profile = "catv_huashu_nocolor_sfu_xpon_nowifi_cable_novoice_nousb_128m_nand"
+                },
                 "shaoxing" to BuildConfig().apply {
                     profile = "catv_shaoxing_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
                 },
