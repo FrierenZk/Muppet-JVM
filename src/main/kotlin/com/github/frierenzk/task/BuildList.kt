@@ -66,6 +66,9 @@ class BuildList {
                 },
                 "shanxijinmei" to BuildConfig().apply {
                     profile = "catv_shanxijinmei_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                },
+                "shanxi" to BuildConfig().apply {
+                    profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 }
             ),
             "tags" to sortedMapOf(
