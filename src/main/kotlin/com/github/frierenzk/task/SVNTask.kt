@@ -15,7 +15,7 @@ sealed class SVNTask {
 
         fun buildSVNCheckOutTask(uri: URI, svn: String): SVNTask {
             if (!isURL(svn)) throw IllegalArgumentException("Invalid svn path")
-            if (File(uri).listFiles()?.size ?: 0 > 0) throw IllegalArgumentException("Invalid checkout target directory")
+            if (File(uri).exists() && File(uri).listFiles()?.size ?: 0 > 0) throw IllegalArgumentException("Invalid checkout target directory")
             return CheckOutTask(uri, svn)
         }
 
