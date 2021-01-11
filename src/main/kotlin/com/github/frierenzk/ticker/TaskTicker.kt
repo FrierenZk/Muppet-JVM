@@ -131,7 +131,6 @@ class TaskTicker : DispatcherBase() {
     private fun tick() = lock.read {
         tasks.replaceAll { task, count ->
             val interval = (taskParas[task]?.get("interval") as Number).toInt()
-            println(task)
             if (count > interval) {
                 scope.launch(context) {
                     raiseEvent(
