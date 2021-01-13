@@ -120,6 +120,9 @@ class BuildList {
                 "FDT_henan" to BuildConfig().apply {
                     profile = "catv_henan_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
                 },
+                "FDT_henan_xichuan" to BuildConfig().apply {
+                    profile = "catv_henanxichuan_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
+                },
                 "FDT_ecuador" to BuildConfig().apply {
                     profile = "catv_ecuador_nocolor_hgu_xpon_wifi_cable_voice_usb"
                     projectDir = "FDT_ecuador"
