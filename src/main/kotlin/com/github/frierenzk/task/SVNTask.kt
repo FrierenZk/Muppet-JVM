@@ -44,9 +44,10 @@ sealed class SVNTask {
             val list = info.inputBuffer.lineSequence().toList()
             val rev = try {
                 list.toList().takeIf { it.isNotEmpty() }
-                    ?.first { it.startsWith("Last Changed Rev:") } ?: ""
-            }catch (exception: NoSuchElementException) {
-                ""
+                    ?.first { it.startsWith("Last Changed Rev:") }?.trim() ?: ""
+            } catch (exception: NoSuchElementException) {
+                if (list.isEmpty()) ""
+                else "unknown"
             }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
             errorBufferedReader = info.errorBuffer
@@ -74,7 +75,8 @@ sealed class SVNTask {
                 list.takeIf { it.isNotEmpty() }
                     ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
             } catch (exception: NoSuchElementException) {
-                ""
+                if (list.isEmpty()) ""
+                else "unknown"
             }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
             errorBufferedReader = info.errorBuffer ?: BufferedReader(StringReader(""))
