@@ -102,6 +102,22 @@ open class CompileTask {
                 onPush?.invoke("delete ${it.name}")
             }
         }
+        shell = ShellUtils().apply {
+            execCommands(
+                listOf(
+                    "cd ${config.getFullSourcePath()}",
+                    "./mkfw.sh ${config.profile} clean ; exit"
+                )
+            )
+        }
+        scope.launch(this.contextStdErr) {
+            shell.errorBuffer?.useLines { lines ->
+                lines.forEach { onPush?.invoke(it) }
+            }
+        }
+        shell.inputBuffer?.useLines { lines ->
+            lines.forEach { onPush?.invoke(it) }
+        }
         return TaskStatus.Working
     }
 
