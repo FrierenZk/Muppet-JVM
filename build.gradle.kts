@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.4.20"
+    kotlin("jvm") version "1.4.32"
 }
 
 group = "com.github.frierenzk"
@@ -14,7 +14,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.4.2")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.4.3")
 
     implementation("com.corundumstudio.socketio","netty-socketio","1.7.18")
     implementation("com.google.code.gson","gson","2.8.6")
