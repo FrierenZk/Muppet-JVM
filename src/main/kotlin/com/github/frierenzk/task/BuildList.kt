@@ -68,6 +68,12 @@ class BuildList {
                 },
                 "shanxi" to BuildConfig().apply {
                     profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                },
+                "ux3320" to BuildConfig().apply {
+                    profile = "catv_ux3320_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                },
+                "columbia" to BuildConfig().apply{
+                    profile = "catv_columbia_white_hgu_gpon_wifi_cable_novoice_nousb"
                 }
             ),
             "tags" to sortedMapOf(
@@ -138,6 +144,10 @@ class BuildList {
                     profile = "catv_tvecuador_nocolor_hgu_xpon_wifi_cable_voice_usb"
                     projectDir = "FDT_ecuador"
                 },
+                "novoice_ecuador" to BuildConfig().apply {
+                    profile = "catv_ecuador_nocolor_hgu_xpon_wifi_cable_novoice_usb"
+                    projectDir = "FDT_ecuador"
+                },
                 "FDT_SiJie" to BuildConfig().apply {
                     profile = "catv_standard_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 },
@@ -146,6 +156,12 @@ class BuildList {
                 },
                 "FDT_dongyan_gpon_neutral" to BuildConfig().apply {
                     profile = "catv_dongyanNeutral_black_hgu_gpon_wifi_cable_novoice_usb"
+                },
+                "FDT_ux3320" to BuildConfig().apply {
+                    profile = "catv_standard_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                },
+                "FDT_fenghuo" to BuildConfig().apply {
+                    profile = "catv_standard_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
                 }
             ),
             "7528" to sortedMapOf(
@@ -167,6 +183,11 @@ class BuildList {
                 "7528-wifi2" to BuildConfig().apply {
                     profile = "catv_general_black_hgu_gpon_wifi2_cable_voice_usb"
                     projectDir = "catv_general_black_hgu_gpon_wifi2_cable_voice_usb"
+                    sourcePath = "\$default/MTK-7528"
+                },
+                "7528-usb2" to BuildConfig().apply {
+                    profile = "catv_general_black_hgu_gpon_wifi2_nocable_voice2_usb2"
+                    projectDir = "catv_general_black_hgu_gpon_wifi2_nocable_voice2_usb2"
                     sourcePath = "\$default/MTK-7528"
                 },
                 "7528-fujian" to BuildConfig().apply {
