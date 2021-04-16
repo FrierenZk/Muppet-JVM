@@ -73,7 +73,7 @@ class BuildList {
                     profile = "catv_ux3320_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 },
                 "columbia" to BuildConfig().apply{
-                    profile = "catv_columbia_white_hgu_gpon_wifi_cable_novoice_nousb"
+                    profile = "catv_columbia_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 }
             ),
             "tags" to sortedMapOf(
