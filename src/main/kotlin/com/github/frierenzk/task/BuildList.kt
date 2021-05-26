@@ -29,6 +29,12 @@ class BuildList {
                 },
                 "huashusfu" to BuildConfig().apply {
                     profile = "catv_huashu_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
+                    projectDir = "huashusfu"
+                },
+                "huashusfu-ux3320" to BuildConfig().apply {
+                    profile = "catv_huashu_ux3320_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
+                    projectDir = "huashusfu"
+                    uploadPath = "\$base/\$category/huashusfu"
                 },
                 "huashu" to BuildConfig().apply {
                     profile = "catv_huashu_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
@@ -72,7 +78,7 @@ class BuildList {
                 "ux3320" to BuildConfig().apply {
                     profile = "catv_ux3320_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 },
-                "columbia" to BuildConfig().apply{
+                "columbia" to BuildConfig().apply {
                     profile = "catv_columbia_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 }
             ),
@@ -114,12 +120,33 @@ class BuildList {
                 },
                 "shanxi-1.0" to BuildConfig().apply {
                     profile = "catv_shanxi_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                    projectDir = "shanxi-1.0"
+                },
+                "shanxi-1.0-ux3320" to BuildConfig().apply {
+                    profile = "catv_shanxi_ux3320_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                    projectDir = "shanxi-1.0"
+                    uploadPath = "\$base/\$category/shanxi-1.0"
                 },
                 "hubei-1.0" to BuildConfig().apply {
                     profile = "catv_hubeiguangdian_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
                 },
                 "changguang-1.0" to BuildConfig().apply {
                     profile = "catv_changguang_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
+                },
+                "neimeng-2.0" to BuildConfig().apply {
+                    profile = "catv_neimeng_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
+                    projectDir = "neimeng-2.0"
+                },
+                "neimeng-2.0-ux3320" to BuildConfig().apply {
+                    profile = "catv_neimeng_ux3320_nocolor_sfu_xpon_nowifi_nocable_novoice_nousb"
+                    projectDir = "neimeng-2.0"
+                    uploadPath = "\$base/\$category/neimeng-2.0"
+                },
+                "columbia-2.0" to BuildConfig().apply {
+                    profile = "catv_columbia_nocolor_hgu_xpon_wifi_nocable_novoice_nousb"
+                },
+                "huashu-1.0" to BuildConfig().apply {
+                    profile = "catv_huashu_nocolor_sfu_xpon_nowifi_cable_novoice_nousb"
                 }
             ),
             "branches" to sortedMapOf(
@@ -202,27 +229,21 @@ class BuildList {
                 }
             ),
             "7580" to sortedMapOf(
-                "7580" to BuildConfig().apply {
+                "MTK-7580" to BuildConfig().apply {
                     profile = "CUC_en7580_7592_7615_OSGI_demo"
-                    projectDir = "MTK-7580"
                     sourcePath = "\$default"
                 },
-                "7580-sfu" to BuildConfig().apply {
-                    profile = "CUC_en7580_SFU_demo"
-                    projectDir = "CUC_en7580_SFU_demo"
-                    sourcePath = "\$default/MTK-7580"
+                "MTK-7580-SFU" to BuildConfig().apply {
+                    profile = "CT_SFU_EN7580"
+                    sourcePath = "\$default"
                 },
-                "7580-hgu-new" to BuildConfig().apply {
-                    profile = "CUC_en7580_7592_7615"
-                    projectDir = "CUC_en7580_7592_7615"
+                "CUC_en7580_DBUS_7592_7613_demo" to BuildConfig().apply {
+                    profile = "CUC_en7580_DBUS_7592_7613_demo"
+                    sourcePath = "\$default/MTK-CUC-7580"
                 },
-                "7580-sfu-new" to BuildConfig().apply {
-                    profile = "CUC_en7580_7592_7615_SFU"
-                    projectDir = "CUC_en7580_7592_7615_SFU"
-                },
-                "7580-sfu-catv" to BuildConfig().apply {
-                    profile = "catv_en7580_sfu"
-                    projectDir = "catv_en7580_sfu"
+                "CUC_en7580_DBUS_7592_7615_demo" to BuildConfig().apply {
+                    profile = "CUC_en7580_DBUS_7592_7615_demo"
+                    sourcePath = "\$default/MTK-CUC-7580"
                 }
             ),
             "wifi6" to sortedMapOf(
