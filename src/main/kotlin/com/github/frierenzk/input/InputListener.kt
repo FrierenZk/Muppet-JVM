@@ -44,12 +44,16 @@ class InputListener : DispatcherBase() {
                 val args = list.getOrNull(1)
                 if (args is String) raiseEvent(
                     PoolEvent.AddTask,
-                    Pipe<HashMap<String, String>, String>(hashMapOf("name" to args)) {}
+                    Pipe<HashMap<String, String>, String>(hashMapOf("name" to args)) {
+                        println("[$args]$it")
+                    }
                 )
             }
             "stop" -> {
                 val args = list.getOrNull(1)
-                if (args is String) raiseEvent(PoolEvent.StopTask, Pipe<String, String>(args) {})
+                if (args is String) raiseEvent(PoolEvent.StopTask, Pipe<String, String>(args) {
+                    println("[$args]$it")
+                })
             }
             "resetTicker" -> raiseEvent(TickerEvent.Reset, Pipe.callback<String> {})
         }
