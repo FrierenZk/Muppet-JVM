@@ -16,8 +16,8 @@ dependencies {
     implementation(kotlin("reflect"))
     implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.4.3")
 
-    implementation("com.corundumstudio.socketio","netty-socketio","1.7.19")
-    implementation("com.google.code.gson","gson","2.8.6")
+    implementation("com.corundumstudio.socketio", "netty-socketio", "1.7.19")
+    implementation("com.google.code.gson", "gson", "2.8.6")
 
     testImplementation(kotlin("test-junit5"))
     testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
@@ -40,16 +40,17 @@ tasks {
         kotlinOptions.jvmTarget = "11"
     }
     jar {
+        duplicatesStrategy = DuplicatesStrategy.WARN
         manifest {
             attributes["Main-Class"] = "com.github.frierenzk.MuppetKt"
         }
-        configurations["compileClasspath"].forEach { file: File ->
+        configurations["runtimeClasspath"].forEach { file: File ->
             from(zipTree(file.absoluteFile))
         }
     }
 }
 
-fun getGitID():String {
+fun getGitID(): String {
     val p = Runtime.getRuntime().exec("git rev-parse --short HEAD")
     return p?.inputStream?.bufferedReader()?.readLine() ?: ""
 }
