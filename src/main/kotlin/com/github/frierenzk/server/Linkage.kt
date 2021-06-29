@@ -56,7 +56,7 @@ class Linkage : DispatcherBase() {
         server.broadcastOperations?.sendEvent("broadcast_logs", JsonArray().apply {
             this.add(args.data.first)
             this.add(args.data.second)
-        })
+        }.toString())
     }
 
     private fun runServer() {
