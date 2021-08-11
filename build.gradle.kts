@@ -1,9 +1,9 @@
 plugins {
-    kotlin("jvm") version "1.4.32"
+    kotlin("jvm") version "1.5.21"
 }
 
 group = "com.github.frierenzk"
-version = "0.2.5".let {
+version = "0.2.6".let {
     "$it${if (getGitID().isBlank()) "-unknown" else "-${getGitID()}"}"
 }
 
@@ -14,14 +14,14 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.4.3")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.5.1")
 
     implementation("com.corundumstudio.socketio", "netty-socketio", "1.7.19")
-    implementation("com.google.code.gson", "gson", "2.8.6")
+    implementation("com.google.code.gson", "gson", "2.8.7")
 
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.0")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
     testImplementation("io.socket", "socket.io-client", "1.0.1")
 }
 
