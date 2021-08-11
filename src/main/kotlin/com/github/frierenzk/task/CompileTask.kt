@@ -33,9 +33,9 @@ open class CompileTask {
     )
 
     fun run() {
-        try {
-            if (status.isWaiting()) status = TaskStatus.Working
-            this.scope.launch(context) {
+        if (status.isWaiting()) status = TaskStatus.Working
+        this.scope.launch(context) {
+            try {
                 runSequence.forEach {
                     if (!status.isEnd()) status = it()
                 }
@@ -48,12 +48,12 @@ open class CompileTask {
                     onPush?.invoke("Error occurred")
                     onUpdateStatus?.invoke()
                 }
+            } catch (exception: Exception) {
+                onPush?.invoke("Error occurred")
+                exception.message?.let { onPush?.invoke(it) }
+                exception.stackTrace.joinToString().let { onPush?.invoke(it) }
+                status = TaskStatus.Error
             }
-        } catch (exception: Exception) {
-            onPush?.invoke("Error occurred")
-            exception.message?.let { onPush?.invoke(it) }
-            exception.stackTrace.joinToString().let { onPush?.invoke(it) }
-            status = TaskStatus.Error
         }
     }
 
@@ -101,6 +101,22 @@ open class CompileTask {
                 it.delete()
                 onPush?.invoke("delete ${it.name}")
             }
+        }
+        shell = ShellUtils().apply {
+            execCommands(
+                listOf(
+                    "cd ${config.getFullSourcePath()}",
+                    "./mkfw.sh ${config.profile} clean ; exit"
+                )
+            )
+        }
+        scope.launch(this.contextStdErr) {
+            shell.errorBuffer?.useLines { lines ->
+                lines.forEach { onPush?.invoke(it) }
+            }
+        }
+        shell.inputBuffer?.useLines { lines ->
+            lines.forEach { onPush?.invoke(it) }
         }
         return TaskStatus.Working
     }

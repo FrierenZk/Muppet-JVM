@@ -1,7 +1,7 @@
 package com.github.frierenzk
 
-import com.github.frierenzk.dispatcher.DispatcherInterface
 import com.github.frierenzk.dispatcher.EventType
+import com.github.frierenzk.dispatcher.IDispatcher
 import com.github.frierenzk.input.InputListener
 import com.github.frierenzk.server.Linkage
 import com.github.frierenzk.task.TaskPoolManager
@@ -11,7 +11,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlin.system.exitProcess
 
 private val channel by lazy { Channel<Int>() }
-private val handlerCollections by lazy { HashSet<DispatcherInterface>() }
+private val handlerCollections by lazy { HashSet<IDispatcher>() }
 
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
@@ -24,13 +24,7 @@ private suspend fun preInit() = coroutineScope {
 private suspend fun handleEvent(event: EventType, args: Any) {
     when (event) {
         MEvent.Exit -> {
-            channel.send(
-                when (args) {
-                    is String -> args.toIntOrNull() ?: 0
-                    is Int -> args
-                    else -> args.toString().toIntOrNull() ?: 0
-                }
-            )
+            channel.send(args.toString().toIntOrNull() ?: 0)
             channel.close()
         }
     }

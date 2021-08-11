@@ -2,10 +2,9 @@ package com.github.frierenzk.task
 
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
+import com.github.frierenzk.dispatcher.Pipe
 import com.github.frierenzk.server.ServerEvent
 import com.github.frierenzk.utils.ConfigOperator
-import com.github.frierenzk.utils.TypeUtils.castMap
-import com.github.frierenzk.utils.TypeUtils.castPairs
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
@@ -35,36 +34,45 @@ class TaskPoolManager : DispatcherBase() {
     private val maxCount by lazy { Runtime.getRuntime().availableProcessors().let { if (it > 1) it else 1 } }
     private val calendarFormatter = SimpleDateFormat("[MM-dd HH:mm:ss]")
 
-    override fun receiveEvent(event: EventType, args: Any) {
+    override fun receiveEvent(event: EventType, args: Pipe<*, *>) {
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
         when (event) {
             is PoolEvent ->
                 when (event) {
                     PoolEvent.Default -> println("$event shouldn't be used")
-                    PoolEvent.AddTask -> if (args is HashMap<*, *>) createNewTask(args)
-                    PoolEvent.StopTask -> if (args is Pair<*, *>) stopTask(args)
-                    PoolEvent.AvailableList -> getAvailableList(args)
-                    PoolEvent.WaitingList -> getWaitingList(args)
-                    PoolEvent.WorkingList -> getWorkingList(args)
-                    PoolEvent.TaskStatus -> if (args is Pair<*, *>) getTaskStatus(args)
-                    PoolEvent.ReloadConfig -> loadConfig()
-                    PoolEvent.CreateTask -> if (args is HashMap<*, *>) createNewCheckOutTask(args)
+                    PoolEvent.AddTask ->
+                        args.runIf(args.isPipe<Map<String, Any>, String>()) { createNewTask(args.asPipe()!!) }
+                    PoolEvent.StopTask ->
+                        args.runIf(args.isPipe<String, String>()) { stopTask(args.asPipe()!!) }
+                    PoolEvent.AvailableList ->
+                        args.runIf(args.isCallbackPipe<Map<String, String>>()) { getAvailableList(args.asCallbackPipe()!!) }
+                    PoolEvent.WaitingList ->
+                        args.runIf(args.isCallbackPipe<List<String>>()) { getWaitingList(args.asCallbackPipe()!!) }
+                    PoolEvent.WorkingList ->
+                        args.runIf(args.isCallbackPipe<List<String>>()) { getWorkingList(args.asCallbackPipe()!!) }
+                    PoolEvent.TaskStatus ->
+                        args.runIf(args.isPipe<String, String>()) { getTaskStatus(args.asPipe()!!) }
+                    PoolEvent.ReloadConfig ->
+                        args.runIf(args.isCallbackPipe<String>()) { loadConfig(args.asCallbackPipe()!!) }
+                    PoolEvent.CreateTask ->
+                        args.runIf(args.isPipe<Map<String, Any>, String>()) { createNewCheckOutTask(args.asPipe()!!) }
                     else -> println(event)
                 }
         }
     }
 
-    private fun printlnWithPushLogs(name: String, line: String) = runBlocking {
+    private fun printlnWithPushLogs(name: String, line: String) {
+        if (line.isBlank()) return
         val arr = "[$name]${calendarFormatter.format(Calendar.getInstance().time)}: $line"
-        println(arr).also { raiseEvent(ServerEvent.BroadCast, Pair(name, arr + "\r\n")) }
+        runBlocking { raiseEvent(ServerEvent.BroadCast, Pipe.data(Pair(name, arr + "\r\n"))) }
+        println(arr)
     }
 
-    private fun taskCheck() = runBlocking {
+    private fun taskCheck() {
         val remove = HashSet<String>()
         val run = HashSet<String>()
         val working = HashSet<String>()
         taskPool.forEach {
-            raiseEvent(ServerEvent.Status, Pair(it.key, it.value.status))
             when (it.value.status) {
                 TaskStatus.Finished -> remove.add(it.key)
                 TaskStatus.Error -> remove.add(it.key)
@@ -78,6 +86,7 @@ class TaskPoolManager : DispatcherBase() {
             taskPool[it]?.close()
             taskPool.remove(it)
             count--
+            runBlocking { raiseEvent(ServerEvent.TaskFinish, Pipe.data(it)) }
         }
         run.forEach {
             if (count < maxCount && !working.contains(taskPool[it]?.uid))
@@ -92,141 +101,107 @@ class TaskPoolManager : DispatcherBase() {
         super.closeEvent()
     }
 
-    private fun createNewTask(args: HashMap<*, *>) {
-        val paras = castMap<String, Any>(args)
-        val uuid: UUID? = paras["uuid"]?.let { it as? UUID }
-        val name = paras["name"]?.let { it as? String } ?: ""
+    private fun createNewTask(args: Pipe<out Map<String, Any>, String>) {
+        val name = args.data["name"].let { it as? String } ?: ""
         val conf: BuildConfig? = configLock.read {
             if (config.containsKey(name))
                 config[name]
             else null
         }
-        if (conf is BuildConfig) {
-            if (taskPool.containsKey(name)) {
-                printlnWithPushLogs(name, "Target task duplicated")
-            } else {
-                conf.extraParas.putAll(paras)
+        if (conf is BuildConfig)
+            if (taskPool.containsKey(name))
+                args.callback("Target task duplicated")
+            else {
                 taskPool[name] = CompileTask().apply {
-                    create(conf)
-                    onPush = fun(line: String) {
-                        printlnWithPushLogs(name, line)
-                    }
-                    onUpdateStatus = fun() = runBlocking {
-                        checkTrigger.send("")
-                    }
+                    onPush = { printlnWithPushLogs(name, it) }
+                    onUpdateStatus = { runBlocking { checkTrigger.send("") } }
+                    create(conf.apply { extraParas.putAll(args.data) })
                 }
-                runBlocking {
-                    checkTrigger.send("")
-                    if (uuid is UUID) raiseEvent(ServerEvent.AddTask, Pair(uuid, name))
-                }
+                runBlocking { checkTrigger.send("") }
+                args.callback("Success")
             }
-        } else {
-            printlnWithPushLogs(name, "Target task can not find in build list")
-        }
+        else args.callback("Can not find target task")
     }
 
-    private fun createNewCheckOutTask(args: HashMap<*, *>) {
-        var uuid: UUID? = null
-        val push = fun(status: Boolean, msg: String) = runBlocking {
-            val data = "[Create][${calendarFormatter.format(Calendar.getInstance().time)}]: $msg"
-            println(data)
-            raiseEvent(ServerEvent.CreateTask, Pair(uuid, mapOf("status" to status, "msg" to data)))
-        }
-        val map = castMap<String, Any>(args)
+    private fun createNewCheckOutTask(args: Pipe<out Map<String, Any>, String>) {
         try {
-            val name = map["name"] as String
-            uuid = map["uuid"]?.let { it as? UUID }
+            val name = args.data["name"] as String
             if (config.containsKey(name)) {
-                push.invoke(false, "Already had task $name, please change another name")
+                args.callback("Already had task, please change another name")
                 return
             }
             val task = CreateNewCompileTask()
             var conf: BuildConfig? = null
             task.onSave = { conf = it }
-            val (result, rev) = task.create(map)
+            val (result, rev) = task.create(args.data)
             if (!result) {
-                push.invoke(false, "Task Failed to create, with $rev")
+                args.callback("Task Failed to create, with $rev")
                 return
             }
             if (conf is BuildConfig) {
-                configLock.read {
-                    config[name] = conf!!
-                }
-                push.invoke(true, "Task $name create success")
+                configLock.read { config[name] = conf!! }
+                args.callback("Success")
                 ConfigOperator.saveBuildList(config)
                 taskPool[name] = task.apply {
-                    onPush = fun(line: String) {
-                        printlnWithPushLogs(name, line)
-                    }
-                    onUpdateStatus = fun() = runBlocking {
-                        checkTrigger.send("")
-                    }
+                    onPush = { printlnWithPushLogs(name, it) }
+                    onUpdateStatus = { runBlocking { checkTrigger.send("") } }
                 }
-            } else {
-                push.invoke(false, "Can not generate BuildConfig from paras")
-                return
-            }
+            } else args.callback("Can not generate BuildConfig from paras")
         } catch (exception: Exception) {
-            push.invoke(false, "Error occurred")
-            push.invoke(false, exception.stackTraceToString())
-            return
+            args.callback(exception.stackTrace.joinToString("\r\n"))
+            exception.printStackTrace()
         }
     }
 
-    private fun stopTask(args: Pair<*, *>) = runBlocking {
-        val (uuid, name) = castPairs<UUID, String>(args)
-        if (name is String)
-            if (taskPool.containsKey(name)) {
-                taskPool[name]?.stop()
-                if (uuid is UUID) raiseEvent(ServerEvent.StopTask, args)
-            } else {
-                printlnWithPushLogs(name, "Target task can not find in build list")
-            }
+    private fun stopTask(args: Pipe<String, String>) {
+        if (!taskPool.containsKey(args.data)) {
+            args.callback("Can not find target task")
+            return
+        }
+        taskPool[args.data]?.stop()
+        args.callback("Success")
     }
 
-    private fun getAvailableList(args: Any) = runBlocking {
+    private fun getAvailableList(args: Pipe<Unit, Map<String, String>>) {
         val list = hashMapOf<String, String>()
         config.forEach { (key, value) ->
             list[key] = value.category
         }
-        raiseEvent(ServerEvent.AvailableList, Pair(args, list))
-        checkTrigger.send("")
+        args.callback(list)
     }
 
-    private fun getWaitingList(args: Any) = runBlocking {
+    private fun getWaitingList(args: Pipe<Unit, List<String>>) {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
             if (value.status.isWaiting()) list.add(key)
         }
-        raiseEvent(ServerEvent.WaitingList, Pair(args, list))
+        args.callback(list)
     }
 
-    private fun getWorkingList(args: Any) = runBlocking {
+    private fun getWorkingList(args: Pipe<Unit, List<String>>) {
         val list = mutableListOf<String>()
         taskPool.forEach { (key, value) ->
             if (value.status.isWorking())
                 list.add(key)
         }
-        raiseEvent(ServerEvent.WorkingList, Pair(args, list))
+        args.callback(list)
     }
 
-    private fun getTaskStatus(args: Any) = runBlocking {
-        val (arg, name) = when (args) {
-            is Pair<*, *> -> args
-            is String -> Pair(Unit, args)
-            else -> throw IllegalArgumentException()
-        }
-        if (name is String) {
-            val status = taskPool[name]?.status ?: TaskStatus.Finished
-            raiseEvent(ServerEvent.Status, Pair(arg, Pair(name, status)))
-        }
+    private fun getTaskStatus(args: Pipe<String, String>) {
+        val status = taskPool[args.data]?.status ?: TaskStatus.Finished
+        args.callback(status.toString())
     }
 
-    private fun loadConfig() {
-        configLock.write {
+    private fun loadConfig(args: Pipe<Unit, String>) = configLock.write {
+        try {
             config.clear()
             config.putAll(ConfigOperator.loadBuildList())
+            args.callback("Success")
+            runBlocking { raiseEvent(ServerEvent.UpdateList, Pipe.default) }
             println(config.keys)
+        } catch (exception: Exception) {
+            args.callback("Load config failed with $exception")
+            exception.printStackTrace()
         }
     }
 
@@ -238,6 +213,6 @@ class TaskPoolManager : DispatcherBase() {
                     checkTicker.onReceive { taskCheck() }
                 }
         }
-        loadConfig()
+        loadConfig(Pipe.callback { println("Config load $it") })
     }
 }

@@ -3,18 +3,24 @@ package com.github.frierenzk.utils
 import com.google.gson.*
 
 object TypeUtils {
-    inline fun <reified T1, reified T2> castPairs(args: Pair<*, *>): Pair<T1?, T2?> {
-        val (key, value) = args
-        return if (key is T1 && value is T2) Pair(key, value)
-        else Pair(null, null)
+    inline fun <reified A, reified B> Pair<*, *>.isPairOf(): Boolean {
+        return first is A && second is B
     }
 
-    inline fun <reified T1, reified T2> castMap(args: HashMap<*, *>): HashMap<T1, T2> {
-        val dstMap = hashMapOf<T1, T2>()
-        args.forEach { (key, value) ->
-            if (key is T1 && value is T2) dstMap[key] = value
-        }
-        return dstMap
+    inline fun <reified A, reified B> Pair<*, *>.asPairOf(): Pair<A, B>? {
+        if (!isPairOf<A, B>()) return null
+        return first as A to second as B
+    }
+
+    inline fun <reified A, reified B> Map<*, *>.isMapOf(): Boolean {
+        return all { it.key is A && it.value is B }
+    }
+
+    inline fun <reified A, reified B> Map<*, *>.asMapOf(): Map<A, B>? {
+        return if (isMapOf<A, B>())
+            @Suppress("UNCHECKED_CAST")
+            this as Map<A, B>
+        else null
     }
 
     fun castJsonPrimitive(jsonPrimitive: JsonPrimitive): Any {

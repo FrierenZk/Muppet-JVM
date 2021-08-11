@@ -15,7 +15,7 @@ sealed class SVNTask {
 
         fun buildSVNCheckOutTask(uri: URI, svn: String): SVNTask {
             if (!isURL(svn)) throw IllegalArgumentException("Invalid svn path")
-            if (File(uri).listFiles()?.size ?: 0 > 0) throw IllegalArgumentException("Invalid checkout target directory")
+            if (File(uri).exists() && File(uri).listFiles()?.size ?: 0 > 0) throw IllegalArgumentException("Invalid checkout target directory")
             return CheckOutTask(uri, svn)
         }
 
@@ -42,8 +42,13 @@ sealed class SVNTask {
         override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", uri.path)) }
             val list = info.inputBuffer.lineSequence().toList()
-            val rev = list.toList().takeIf { it.isNotEmpty() }
-                ?.first { it.startsWith("Last Changed Rev:") } ?: ""
+            val rev = try {
+                list.toList().takeIf { it.isNotEmpty() }
+                    ?.first { it.startsWith("Last Changed Rev:") }?.trim() ?: ""
+            } catch (exception: NoSuchElementException) {
+                if (list.isEmpty()) ""
+                else "unknown"
+            }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
             errorBufferedReader = info.errorBuffer
             return rev
@@ -66,8 +71,13 @@ sealed class SVNTask {
         override fun info(): String {
             val info = ShellUtils().apply { exec(listOf("svn", "info", svnPath)) }
             val list = info.inputBuffer.lineSequence().filterNotNull().toList()
-            val rev = list.takeIf { it.isNotEmpty() }
-                ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
+            val rev = try {
+                list.takeIf { it.isNotEmpty() }
+                    ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
+            } catch (exception: NoSuchElementException) {
+                if (list.isEmpty()) ""
+                else "unknown"
+            }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
             errorBufferedReader = info.errorBuffer ?: BufferedReader(StringReader(""))
             return rev
