@@ -2,10 +2,10 @@ plugins {
     kotlin("jvm") version "1.5.21"
 }
 
+val ver = "0.2.6"
+
 group = "com.github.frierenzk"
-version = "0.2.6".let {
-    "$it${if (getGitID().isBlank()) "-unknown" else "-${getGitID()}"}"
-}
+version = "$ver-${getGitID()}"
 
 repositories {
     mavenCentral()
@@ -43,6 +43,7 @@ tasks {
         duplicatesStrategy = DuplicatesStrategy.WARN
         manifest {
             attributes["Main-Class"] = "com.github.frierenzk.MuppetKt"
+            attributes["Implementation-Version"] = ver
         }
         configurations["runtimeClasspath"].forEach { file: File ->
             from(zipTree(file.absoluteFile))
@@ -52,5 +53,7 @@ tasks {
 
 fun getGitID(): String {
     val p = Runtime.getRuntime().exec("git rev-parse --short HEAD")
-    return p?.inputStream?.bufferedReader()?.readLine() ?: ""
+    val id = p?.inputStream?.bufferedReader()?.readLine()
+    if (id is String && id.isNotBlank()) return id.trim()
+    else return "unknown"
 }
