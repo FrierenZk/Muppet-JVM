@@ -4,8 +4,20 @@ import com.github.frierenzk.utils.ShellUtils
 import kotlinx.coroutines.*
 import java.io.File
 import java.nio.file.Path
+import java.security.InvalidParameterException
 
 open class CompileTask {
+    companion object {
+        @ObsoleteCoroutinesApi
+        fun create(config: BuildConfig): CompileTask {
+            return if (File(config.getSource()).let {
+                    it.exists() && (it.listFiles()?.size ?: 0) > 0
+                }) CompileTask().apply { create(config) }
+            else if (config.getRemote() is String) CreateNewCompileTask().apply { create(config) }
+            else throw InvalidParameterException(config.toString())
+        }
+    }
+
     private lateinit var config: BuildConfig
     val uid by lazy { config.projectDir ?: config.name }
     var status = TaskStatus.Waiting
@@ -17,7 +29,7 @@ open class CompileTask {
     private lateinit var shell: ShellUtils
 
     @ObsoleteCoroutinesApi
-    fun create(config: BuildConfig) {
+    open fun create(config: BuildConfig) {
         this.config = config
         this.context = newSingleThreadContext(config.name)
         this.contextStdErr = newSingleThreadContext("${config.name}/stdErr")
@@ -63,7 +75,7 @@ open class CompileTask {
         )
             return TaskStatus.Working
         onPush?.invoke("Check svn update")
-        val task = SVNTask.buildSVNTask(File(config.getFullSvnBasePath()).toURI())
+        val task = SVNTask.buildSVNTask(File(config.getSource()).toURI())
         val rev = task.info()
         val printTask = fun(task: SVNTask) {
             task.outBufferedReader.forEachLine { onPush?.invoke(it) }
@@ -72,7 +84,7 @@ open class CompileTask {
         printTask(task)
         if (rev.isBlank()) {
             onPush?.invoke("Check svn info error with rev: $rev")
-            return TaskStatus.Error
+            if (config.extraParas["buildOnlyIfUpdated"] == true) return TaskStatus.Error
         }
         task.update()
         printTask(task)
@@ -90,7 +102,7 @@ open class CompileTask {
 
     protected fun imageClean(): TaskStatus {
         onPush?.invoke("Clean images")
-        val path = Path.of(config.getFullSourcePath() + "/Project/images")
+        val path = Path.of(config.getLocal() + "/Project/images")
         val file = path.toFile()
         if (!file.isDirectory) {
             onPush?.invoke("${file.absolutePath} is not a Directory")
@@ -105,7 +117,7 @@ open class CompileTask {
         shell = ShellUtils().apply {
             execCommands(
                 listOf(
-                    "cd ${config.getFullSourcePath()}",
+                    "cd ${config.getLocal()}",
                     "./mkfw.sh ${config.profile} clean ; exit"
                 )
             )
@@ -127,7 +139,7 @@ open class CompileTask {
         shell = ShellUtils().apply {
             execCommands(
                 listOf(
-                    "cd ${config.getFullSourcePath()}",
+                    "cd ${config.getLocal()}",
                     "./mkfw.sh ${config.profile} ; exit"
                 )
             )
@@ -147,7 +159,7 @@ open class CompileTask {
 
     protected fun imageUpload(): TaskStatus {
         onPush?.invoke("Upload")
-        val path = Path.of(config.getFullSourcePath() + "/Project/images")
+        val path = Path.of(config.getLocal() + "/Project/images")
         val file = path.toFile()
         val uploadFile = file.listFiles()?.find {
             it.extension.contains("gz")
@@ -158,7 +170,7 @@ open class CompileTask {
         }
         val command = listOf(
             "sudo", "sshpass", "-p", "654321", "scp",
-            uploadFile.path, config.getFullUploadPath()
+            uploadFile.path, config.getUpload()
         )
         val upload = ShellUtils().apply { exec(command) }
         upload.inputBuffer?.forEachLine {
