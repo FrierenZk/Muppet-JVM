@@ -1,8 +1,9 @@
-package com.github.frierenzk.utils
+package com.github.frierenzk.config
 
 import com.github.frierenzk.task.BuildConfig
+import com.github.frierenzk.ticker.TickerConfig
+import com.github.frierenzk.ticker.TickerConfigAdaptor
 import com.github.frierenzk.utils.TypeUtils.castIntoJsonObject
-import com.github.frierenzk.utils.TypeUtils.castJsonPrimitive
 import com.google.gson.*
 import java.io.File
 import java.util.concurrent.locks.ReentrantReadWriteLock
@@ -10,22 +11,30 @@ import kotlin.concurrent.read
 import kotlin.concurrent.write
 
 object ConfigOperator {
-    val projectGson: Gson by lazy { GsonBuilder().setPrettyPrinting().create() }
+    val projectGson: Gson by lazy {
+        GsonBuilder()
+            .registerTypeAdapter(TickerConfig::class.java, TickerConfigAdaptor())
+            .setPrettyPrinting().create()
+    }
+    private val stamps by lazy { HashMap<ConfigFile, Long>() }
     private fun loadFile(file: ConfigFile): JsonElement = file.read {
         return try {
-            if (file.exists())
+            if (file.exists()) {
+                stamps[file] = file.stamp()
                 JsonParser.parseReader(file.reader())
-            else {
+            } else {
                 file.createNewFile()
                 file.bufferedWriter().run {
                     this.write(JsonObject().toString())
                     this.flush()
                     this.close()
                 }
+                stamps[file] = file.stamp()
                 JsonNull.INSTANCE
             }
         } catch (exception: Exception) {
             exception.printStackTrace()
+            stamps[file] = 0
             JsonNull.INSTANCE
         }
     }
@@ -41,12 +50,14 @@ object ConfigOperator {
             this.flush()
             this.close()
         }
+        this.stamps[file] = file.stamp()
     }
 
     private class ConfigFile(fileName: String) : File(fileName) {
         private val lock by lazy { ReentrantReadWriteLock() }
         inline fun <T> read(action: () -> T): T = lock.read(action)
         inline fun <T> write(action: () -> T): T = lock.write(action)
+        fun stamp() = read { lastModified().xor(length().shl(32) * 31) }
     }
 
     private val serverFile by lazy { ConfigFile("server_settings.json") }
@@ -60,21 +71,28 @@ object ConfigOperator {
         return jsonObject
     }
 
-    fun loadTickerConfig(): HashMap<String, HashMap<String, Any>> {
+    fun loadTickerConfig(): Map<String, TickerConfig> {
         val jsonObject = castIntoJsonObject(loadFile(timerFile))
-        val ret = hashMapOf<String, HashMap<String, Any>>()
-        jsonObject.entrySet().forEach { (name, subObj) ->
-            if (subObj.isJsonObject) subObj.asJsonObject.entrySet().forEach { (key, value) ->
-                if (value.isJsonPrimitive) ret.getOrPut(name) { hashMapOf() }[key] =
-                    castJsonPrimitive(value.asJsonPrimitive).let { if (it is Number) it.toInt() else it }
+        val ret = hashMapOf<String, TickerConfig>()
+        jsonObject.entrySet().forEach { (name, data) ->
+            try {
+                projectGson.fromJson(data, IncompleteTickerConfig::class.java).toConf().let {
+                    if (it is TickerConfig) ret[it.name] = it
+                    else println("Invalid config data[$name]: $data")
+                }
+            } catch (exception: JsonSyntaxException) {
+                println("Invalid config data[$name]: $data")
+                exception.printStackTrace()
             }
         }
-        return HashMap(ret.filter { it.value.containsKey("interval") })
+        return ret
     }
 
-    fun saveTickerConfig(configs: HashMap<String, HashMap<String, Any>>) {
-        saveFile(timerFile, projectGson.toJsonTree(configs))
+    fun saveTickerConfig(configs: Map<String, TickerConfig>) {
+        saveFile(timerFile, projectGson.toJsonTree(configs.toSortedMap()))
     }
+
+    fun checkTickerConfig(): Boolean = stamps[timerFile] == timerFile.stamp()
 
     fun loadBuildConfigs(): JsonObject {
         return castIntoJsonObject(loadFile(buildConfigFile))
@@ -84,19 +102,26 @@ object ConfigOperator {
         saveFile(buildConfigFile, jsonObject)
     }
 
-    fun loadBuildList(): HashMap<String, BuildConfig> {
+    fun loadBuildList(): Map<String, BuildConfig> {
         val configs = hashMapOf<String, BuildConfig>()
         val jsonObject = castIntoJsonObject(loadFile(buildListFile))
         jsonObject.entrySet().forEach { (_, jsonElement) ->
             val obj = castIntoJsonObject(jsonElement)
-            obj.entrySet().forEach { (_, data) ->
-                val config: BuildConfig? = projectGson.fromJson(data, BuildConfig::class.java)
-                if (config is BuildConfig) configs[config.name] = config
+            obj.entrySet().forEach { (name, data) ->
+                try {
+                    projectGson.fromJson(data, IncompleteBuildConfig::class.java).toConf().let {
+                        if (it is BuildConfig) configs[it.name] = it
+                        else println("Invalid config data[$name]: $data")
+                    }
+                } catch (exception: JsonSyntaxException) {
+                    println("Invalid config data[$name]: $data")
+                    exception.printStackTrace()
+                }
             }
         }
         val check = hashMapOf<String, String>()
         configs.forEach { (_, value) ->
-            val source = value.getFullSourcePath()
+            val source = value.getSource()
             if (check.containsKey(source)) {
                 if (value.projectDir == null) {
                     println(
@@ -111,7 +136,7 @@ object ConfigOperator {
         return configs
     }
 
-    fun saveBuildList(configs: HashMap<String, BuildConfig>) {
+    fun saveBuildList(configs: Map<String, BuildConfig>) {
         val map = hashMapOf<String, HashMap<String, BuildConfig>>()
         configs.forEach { (_, conf) ->
             map.getOrPut(conf.category) { hashMapOf() }[conf.name] = conf
@@ -120,4 +145,6 @@ object ConfigOperator {
         map.forEach { (key, value) -> sort[key] = projectGson.toJsonTree(value.toSortedMap()) }
         saveFile(buildListFile, projectGson.toJsonTree(sort.toSortedMap()))
     }
+
+    fun checkBuildList(): Boolean = stamps[buildListFile] == buildListFile.stamp()
 }
