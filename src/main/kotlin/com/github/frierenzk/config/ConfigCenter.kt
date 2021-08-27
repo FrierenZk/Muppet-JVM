@@ -17,7 +17,7 @@ import java.security.InvalidParameterException
 import java.util.concurrent.ConcurrentHashMap
 
 @ObsoleteCoroutinesApi
-class ConfigManager : DispatcherBase() {
+class ConfigCenter : DispatcherBase() {
     override val eventMonitor by lazy { setOf(ConfigEvent::class.java) }
     private val configContext by lazy { newSingleThreadContext("config") }
     private val ticker by lazy { ticker(delayMillis = 60 * 1000L) }

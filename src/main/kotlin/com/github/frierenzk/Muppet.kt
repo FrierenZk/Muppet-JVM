@@ -1,6 +1,6 @@
 package com.github.frierenzk
 
-import com.github.frierenzk.config.ConfigManager
+import com.github.frierenzk.config.ConfigCenter
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.IDispatcher
 import com.github.frierenzk.input.InputListener
@@ -17,7 +17,7 @@ private val handlerCollections by lazy { HashSet<IDispatcher>() }
 
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
-    launch { handlerCollections.add(ConfigManager().apply { init() }) }
+    launch { handlerCollections.add(ConfigCenter().apply { init() }) }
     launch { handlerCollections.add(TaskPoolManager().apply { init() }) }
     launch { handlerCollections.add(Linkage().apply { init() }) }
     launch { handlerCollections.add(InputListener().apply { init() }) }
