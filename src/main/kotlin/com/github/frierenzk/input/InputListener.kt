@@ -1,14 +1,17 @@
 package com.github.frierenzk.input
 
-import com.github.frierenzk.MEvent
+import com.github.frierenzk.config.ConfigEvent
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.Pipe
+import com.github.frierenzk.task.BuildConfig
 import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.ticker.TickerEvent
+import com.github.frierenzk.utils.MEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
+import kotlinx.coroutines.runBlocking
 import java.util.*
 
 @ObsoleteCoroutinesApi
@@ -39,23 +42,33 @@ class InputListener : DispatcherBase() {
         }
         when (list.getOrNull(0)) {
             "exit" -> raiseEvent(MEvent.Exit, Pipe.default)
-            "reload" -> raiseEvent(PoolEvent.ReloadConfig, Pipe.callback<String> {})
-            "execute" -> {
-                val args = list.getOrNull(1)
+            "reload" -> raiseEvent(ConfigEvent.Reload, Pipe.callback<String> { println(it) })
+            "reload-force" -> raiseEvent(ConfigEvent.Reload, Pipe<Boolean, String>(true) { println(it) })
+            "save" -> raiseEvent(ConfigEvent.Save, Pipe.callback<String> { println(it) })
+            "execute" -> list.getOrNull(1).let { args ->
                 if (args is String) raiseEvent(
-                    PoolEvent.AddTask,
-                    Pipe<HashMap<String, String>, String>(hashMapOf("name" to args)) {
-                        println("[$args]$it")
+                    ConfigEvent.GetConfig,
+                    Pipe<String, BuildConfig?>(args) {
+                        if (it is BuildConfig) runBlocking {
+                            raiseEvent(
+                                PoolEvent.CreateTask,
+                                Pipe<BuildConfig, String>(it) { ret -> println("[$args]$ret") })
+                        }
+                        else println("[Input]Can not find \"$args\"")
                     }
                 )
             }
-            "stop" -> {
-                val args = list.getOrNull(1)
+            "stop" -> list.getOrNull(1).let { args ->
                 if (args is String) raiseEvent(PoolEvent.StopTask, Pipe<String, String>(args) {
-                    println("[$args]$it")
+                    println("[Input]: stop $args info = $it")
                 })
             }
-            "resetTicker" -> raiseEvent(TickerEvent.Reset, Pipe.callback<String> {})
+
+            "trigger" -> list.getOrNull(1).let { args ->
+                if (args is String) raiseEvent(TickerEvent.Trigger,
+                    Pipe<String, String>(args) { println("[Input] trigger $args info = $it") })
+            }
+
         }
     }
 
