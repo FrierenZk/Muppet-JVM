@@ -1,9 +1,9 @@
 package com.github.frierenzk.server
 
+import com.github.frierenzk.config.ConfigEvent
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.Pipe
 import com.github.frierenzk.task.PoolEvent
-import com.github.frierenzk.ticker.TickerEvent
 import com.github.frierenzk.utils.TestUtils.waitingFor
 import io.socket.client.Ack
 import io.socket.client.IO
@@ -11,7 +11,7 @@ import io.socket.client.Socket
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.sendBlocking
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
@@ -51,25 +51,29 @@ internal class LinkageTest {
         waitingFor(connectChan, 3000)
         connectChan.close()
         val testProject = hashMapOf(
-            "set_add_task" to PoolEvent.AddTask,
+            "set_add_task" to ConfigEvent.GetConfig,
             "set_stop_task" to PoolEvent.StopTask,
             "get_waiting_list" to PoolEvent.WaitingList,
             "get_processing_list" to PoolEvent.WorkingList,
-            "get_available_list" to PoolEvent.AvailableList,
-            "reload_config" to PoolEvent.ReloadConfig,
-            "set_create_task" to PoolEvent.CreateTask,
+            "get_task_status" to PoolEvent.TaskStatus,
 
-            "reset_ticker" to TickerEvent.Reset,
-            "enable_ticker" to TickerEvent.Enable,
-            "disable_ticker" to TickerEvent.Disable,
-            "add_timer" to TickerEvent.AddTimer,
-            "modify_interval" to TickerEvent.ModifyInterval
+            "reload_config" to ConfigEvent.Reload,
+            "get_available_list" to ConfigEvent.GetConfigList,
+            "get_task_config" to ConfigEvent.GetConfig,
+            "set_add_config" to ConfigEvent.AddConfig,
+            "set_change_config" to ConfigEvent.ModifyConfig,
+            "set_delete_config" to ConfigEvent.DeleteConfig,
+
+            "get_timer_config" to ConfigEvent.GetTicker,
+            "add_ticker" to ConfigEvent.AddTicker,
+            "modify_ticker" to ConfigEvent.ModifyTicker,
+            "delete_ticker" to ConfigEvent.DeleteTicker,
         )
         testProject.forEach { (event, received) ->
             val ack = object : Ack {
                 val channel by lazy { Channel<String>(1) }
                 override fun call(vararg args: Any?) {
-                    channel.sendBlocking(args.joinToString())
+                    channel.trySendBlocking(args.joinToString())
                 }
             }
             println("Now testing event $event")
