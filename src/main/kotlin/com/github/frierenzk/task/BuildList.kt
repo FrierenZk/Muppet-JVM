@@ -301,7 +301,6 @@ class BuildList {
             ),
             "7580" to mapOf(
                 "MTK-7580" to ConfigBuilder(profile = "CUC_en7580_7592_7615_OSGI_demo"),
-                "catv_en7580_nocolor_hgu_xpon_wifi2_nocable_voice_usb" to ConfigBuilder(profile = "catv_en7580_nocolor_hgu_xpon_wifi2_nocable_voice_usb"),
                 "CUC_en7580_DBUS_7592_7613_demo" to ConfigBuilder(
                     profile = "CUC_en7580_DBUS_7592_7613_demo",
                     source = "\${default}/MTK-CUC-7580"
@@ -310,6 +309,9 @@ class BuildList {
                     profile = "CUC_en7580_DBUS_7592_7615_demo",
                     source = "\${default}/MTK-CUC-7580"
                 ),
+            ),
+            "MTK-7580" to mapOf(
+                "catv_en7580_nocolor_hgu_xpon_wifi2_nocable_voice_usb" to ConfigBuilder(profile = "catv_en7580_nocolor_hgu_xpon_wifi2_nocable_voice_usb"),
             ),
             "MTK-7580-SFU" to mapOf(
                 "CT_SFU_EN7580" to ConfigBuilder(profile = "CT_SFU_EN7580"),
