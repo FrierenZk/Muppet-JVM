@@ -22,7 +22,6 @@ open class CompileTask {
     var status = TaskStatus.Waiting
     protected lateinit var scope: CoroutineScope
     private lateinit var context: ExecutorCoroutineDispatcher
-    protected lateinit var contextStdErr: ExecutorCoroutineDispatcher
     var onPush: ((String) -> Unit)? = null
     var onUpdateStatus: (() -> Unit)? = null
     private lateinit var shell: ShellUtils.Process
@@ -30,9 +29,7 @@ open class CompileTask {
     @ObsoleteCoroutinesApi
     open fun create(config: BuildConfig) {
         this.config = config
-        this.context = newSingleThreadContext(config.name)
-        this.contextStdErr = newSingleThreadContext("${config.name}/stdErr")
-        this.scope = CoroutineScope(context)
+        context = newFixedThreadPoolContext(2, config.name)
         status = TaskStatus.Waiting
     }
 
@@ -44,8 +41,9 @@ open class CompileTask {
     )
 
     fun run() {
+        scope = CoroutineScope(context)
         if (status.isWaiting()) status = TaskStatus.Working
-        scope.launch(context) {
+        scope.launch {
             try {
                 runSequence.forEach {
                     if (!status.isEnd()) status = it()
@@ -117,7 +115,9 @@ open class CompileTask {
             listOf("cd", config.getLocal()),
             listOf("./mkfw.sh", config.profile, "clean"))
         )
-        scope.launch(this.contextStdErr) {
+        scope.launch {
+            println(this.coroutineContext)
+            println(this)
             shell.errorBuffer?.useLines { lines ->
                 lines.forEach { onPush?.invoke(it) }
             }
@@ -136,7 +136,7 @@ open class CompileTask {
             listOf("./mkfw.sh", config.profile))
         )
         runBlocking { delay(1000) }
-        scope.launch(this.contextStdErr) {
+        scope.launch {
             shell.errorBuffer?.useLines { lines ->
                 lines.forEach { onPush?.invoke(it) }
             }
@@ -187,9 +187,8 @@ open class CompileTask {
     }
 
     fun close() {
-        scope.cancel("Close scope")
+        scope.cancel()
         context.close()
-        contextStdErr.close()
         onPush?.invoke("Closed")
     }
 }

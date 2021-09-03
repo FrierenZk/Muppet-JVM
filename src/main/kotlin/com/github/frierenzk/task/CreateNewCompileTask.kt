@@ -28,7 +28,7 @@ class CreateNewCompileTask : CompileTask() {
 
     private fun svnCheckOut(): TaskStatus {
         task.checkOut()
-        scope.launch(contextStdErr) {
+        scope.launch {
             task.errorBufferedReader.useLines { lines ->
                 lines.forEach { onPush?.invoke(it) }
             }
