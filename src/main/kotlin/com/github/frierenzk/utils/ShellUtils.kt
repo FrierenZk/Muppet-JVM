@@ -53,7 +53,6 @@ object ShellUtils {
 
         private fun closeHandle(p: ProcessHandle?) {
             p?.destroyForcibly()
-            println(p?.pid())
             p?.descendants()?.forEach { closeHandle(it) }
         }
 
