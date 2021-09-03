@@ -15,7 +15,9 @@ sealed class SVNTask {
 
         fun buildSVNCheckOutTask(uri: URI, svn: String): SVNTask {
             if (!isURL(svn)) throw IllegalArgumentException("Invalid svn path")
-            if (File(uri).exists() && (File(uri).listFiles()?.size ?: 0) > 0) throw IllegalArgumentException("Invalid checkout target directory")
+            if (File(uri).exists() && (File(uri).listFiles()?.size
+                    ?: 0) > 0
+            ) throw IllegalArgumentException("Invalid checkout target directory")
             return CheckOutTask(uri, svn)
         }
 
@@ -25,9 +27,11 @@ sealed class SVNTask {
     protected open val uri by lazy { URI("").also { throw IllegalArgumentException("Not Implemented") } }
     protected open val svnPath by lazy { "".also { throw IllegalArgumentException("Not Implemented") } }
 
-    var outBufferedReader = BufferedReader(StringReader(""))
+    protected val defaultBuffer by lazy { BufferedReader(StringReader("")) }
+
+    var outBufferedReader = defaultBuffer
         protected set
-    var errorBufferedReader = BufferedReader(StringReader(""))
+    var errorBufferedReader = defaultBuffer
         protected set
 
     private fun notImplemented() {
@@ -40,8 +44,8 @@ sealed class SVNTask {
 
     private class UpdateTask(override val uri: URI) : SVNTask() {
         override fun info(): String {
-            val info = ShellUtils().apply { exec(listOf("svn", "info", uri.path)) }
-            val list = info.inputBuffer.lineSequence().toList()
+            val info = ShellUtils.exec(listOf("svn", "info", uri.path))
+            val list = info.outBuffer?.lineSequence()?.toList() ?: listOf()
             val rev = try {
                 list.toList().takeIf { it.isNotEmpty() }
                     ?.first { it.startsWith("Last Changed Rev:") }?.trim() ?: ""
@@ -50,30 +54,30 @@ sealed class SVNTask {
                 else "unknown"
             }
             outBufferedReader = BufferedReader(StringReader(list.joinToString("\r\n")))
-            errorBufferedReader = info.errorBuffer
+            errorBufferedReader = info.errorBuffer ?: defaultBuffer
             return rev
         }
 
         override fun update() {
-            val update = ShellUtils().apply { exec(listOf("svn", "update", uri.path)) }
-            outBufferedReader = update.inputBuffer
-            errorBufferedReader = update.errorBuffer
+            val update = ShellUtils.exec(listOf("svn", "update", uri.path))
+            outBufferedReader = update.outBuffer ?: defaultBuffer
+            errorBufferedReader = update.errorBuffer ?: defaultBuffer
         }
     }
 
     private class CheckOutTask(override val uri: URI, override val svnPath: String) : SVNTask() {
         override fun checkOut() {
-            val checkOut = ShellUtils().apply { exec(listOf("svn", "co", svnPath, uri.path)) }
-            outBufferedReader = checkOut.inputBuffer
-            errorBufferedReader = checkOut.errorBuffer
+            val checkOut = ShellUtils.exec(listOf("svn", "co", svnPath, uri.path))
+            outBufferedReader = checkOut.outBuffer ?: defaultBuffer
+            errorBufferedReader = checkOut.errorBuffer ?: defaultBuffer
         }
 
         override fun info(): String {
-            val info = ShellUtils().apply { exec(listOf("svn", "info", svnPath)) }
-            val list = info.inputBuffer.lineSequence().toList()
+            val info = ShellUtils.exec(listOf("svn", "info", svnPath))
+            val list = info.outBuffer?.lineSequence()?.toList() ?: listOf()
             val rev = try {
-                list.takeIf { it.isNotEmpty() }
-                    ?.first { it.contains("Last Changed Rev:") }?.substringAfter("Last Changed Rev:")?.trim() ?: ""
+                list.takeIf { it.isNotEmpty() }?.first { it.contains("Last Changed Rev:") }
+                    ?.substringAfter("Last Changed Rev:")?.trim() ?: ""
             } catch (exception: NoSuchElementException) {
                 if (list.isEmpty()) ""
                 else "unknown"

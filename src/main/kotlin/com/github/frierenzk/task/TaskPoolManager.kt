@@ -61,7 +61,10 @@ class TaskPoolManager : DispatcherBase() {
     }
 
     private fun taskCheck() {
-        taskPool.filter { it.value.status.isEnd() }.keys.map { it }.forEach { taskPool.remove(it) }
+        taskPool.filter { it.value.status.isEnd() }.keys.map { it }.forEach {
+            taskPool[it]?.close()
+            taskPool.remove(it)
+        }
         var count = taskPool.filter { it.value.status.isWorking() }.size
         for (i in taskPool.filter { it.value.status.isWaiting() }) {
             if (count >= maxCount) break

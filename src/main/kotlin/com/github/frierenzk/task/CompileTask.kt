@@ -19,14 +19,13 @@ open class CompileTask {
     }
 
     private lateinit var config: BuildConfig
-    val uid by lazy { config.projectDir ?: config.name }
     var status = TaskStatus.Waiting
     protected lateinit var scope: CoroutineScope
     private lateinit var context: ExecutorCoroutineDispatcher
     protected lateinit var contextStdErr: ExecutorCoroutineDispatcher
     var onPush: ((String) -> Unit)? = null
     var onUpdateStatus: (() -> Unit)? = null
-    private lateinit var shell: ShellUtils
+    private lateinit var shell: ShellUtils.Process
 
     @ObsoleteCoroutinesApi
     open fun create(config: BuildConfig) {
@@ -46,7 +45,7 @@ open class CompileTask {
 
     fun run() {
         if (status.isWaiting()) status = TaskStatus.Working
-        this.scope.launch(context) {
+        scope.launch(context) {
             try {
                 runSequence.forEach {
                     if (!status.isEnd()) status = it()
@@ -114,20 +113,16 @@ open class CompileTask {
                 onPush?.invoke("delete ${it.name}")
             }
         }
-        shell = ShellUtils().apply {
-            execCommands(
-                listOf(
-                    "cd ${config.getLocal()}",
-                    "./mkfw.sh ${config.profile} clean ; exit"
-                )
-            )
-        }
+        shell = ShellUtils.exec(listOf(
+            listOf("cd", config.getLocal()),
+            listOf("./mkfw.sh", config.profile, "clean"))
+        )
         scope.launch(this.contextStdErr) {
             shell.errorBuffer?.useLines { lines ->
                 lines.forEach { onPush?.invoke(it) }
             }
         }
-        shell.inputBuffer?.useLines { lines ->
+        shell.outBuffer?.useLines { lines ->
             lines.forEach { onPush?.invoke(it) }
         }
         return TaskStatus.Working
@@ -136,24 +131,21 @@ open class CompileTask {
     protected fun imageBuild(): TaskStatus {
         onPush?.invoke("Compile")
         @Suppress("SpellCheckingInspection")
-        shell = ShellUtils().apply {
-            execCommands(
-                listOf(
-                    "cd ${config.getLocal()}",
-                    "./mkfw.sh ${config.profile} ; exit"
-                )
-            )
-        }
+        shell = ShellUtils.exec(listOf(
+            listOf("cd", config.getLocal()),
+            listOf("./mkfw.sh", config.profile))
+        )
+        runBlocking { delay(1000) }
         scope.launch(this.contextStdErr) {
             shell.errorBuffer?.useLines { lines ->
                 lines.forEach { onPush?.invoke(it) }
             }
         }
-        shell.inputBuffer?.useLines { lines ->
+        shell.outBuffer?.useLines { lines ->
             lines.forEach { onPush?.invoke(it) }
         }
         onPush?.invoke("shell return code = ${shell.returnCode}")
-        return if (shell.returnCode > 0) TaskStatus.Working
+        return if (shell.returnCode >= 0) TaskStatus.Working
         else TaskStatus.Error
     }
 
@@ -172,14 +164,14 @@ open class CompileTask {
             "sudo", "sshpass", "-p", "654321", "scp",
             uploadFile.path, config.getUpload()
         )
-        val upload = ShellUtils().apply { exec(command) }
-        upload.inputBuffer?.forEachLine {
+        val upload = ShellUtils.exec(command)
+        upload.outBuffer?.forEachLine {
             onPush?.invoke(it)
         }
         upload.errorBuffer?.forEachLine {
             onPush?.invoke(it)
         }
-        return if (upload.returnCode > 0) TaskStatus.Working
+        return if (upload.returnCode >= 0) TaskStatus.Working
         else TaskStatus.Error
     }
 
@@ -187,8 +179,8 @@ open class CompileTask {
         status = TaskStatus.Stopping
         onPush?.invoke("Stopping")
         onUpdateStatus?.invoke()
-        if (this::shell.isInitialized && shell.alive) {
-            shell.terminate()
+        if (this::shell.isInitialized && shell.isAlive) {
+            shell.stop()
         }
         status = TaskStatus.Finished
         onUpdateStatus?.invoke()
