@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.5.21"
+    kotlin("jvm") version "1.5.30"
 }
 
 val ver = "0.2.6"
@@ -14,7 +14,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.5.1")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.5.2")
 
     implementation("com.corundumstudio.socketio", "netty-socketio", "1.7.19")
     implementation("com.google.code.gson", "gson", "2.8.7")
