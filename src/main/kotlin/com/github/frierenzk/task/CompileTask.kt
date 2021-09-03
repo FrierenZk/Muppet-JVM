@@ -46,7 +46,8 @@ open class CompileTask {
         scope.launch {
             try {
                 runSequence.forEach {
-                    if (!status.isEnd()) status = it()
+                    //Unknown reason caused coroutines blocking in cancelling when trying to cancel this job
+                    if (!status.isEnd() && this.coroutineContext.isActive) status = it()
                 }
                 if (!(status.isError() || status.isStopping())) {
                     status = TaskStatus.Finished.also {
