@@ -1,5 +1,6 @@
 package com.github.frierenzk.task
 
+import com.github.frierenzk.config.IncompleteBuildConfig
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.Pipe
@@ -76,13 +77,13 @@ class TaskPoolManager : DispatcherBase() {
     }
 
     private fun createTask(args: Pipe<BuildConfig, String>) {
-        args.data.extraParas["timeStamp"] = Calendar.getInstance().time
         if (taskPool.containsKey(args.data)) {
             args.callback("Target task duplicated")
             return
         }
         try {
-            taskPool[args.data] = CompileTask.create(args.data).apply {
+            val timeStamp = IncompleteBuildConfig(extraParas = hashMapOf("timeStamp" to Calendar.getInstance().time))
+            taskPool[args.data] = CompileTask.create(args.data + timeStamp).apply {
                 onPush = { printlnWithPushLogs(args.data.name, it) }
                 onUpdateStatus = { runBlocking { checkTrigger.send(Unit) } }
             }
