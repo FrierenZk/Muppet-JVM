@@ -1,6 +1,7 @@
 package com.github.frierenzk.input
 
 import com.github.frierenzk.config.ConfigEvent
+import com.github.frierenzk.config.IncompleteBuildConfig
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.Pipe
@@ -49,10 +50,16 @@ class InputListener : DispatcherBase() {
                 if (args is String) raiseEvent(
                     ConfigEvent.GetConfig,
                     Pipe<String, BuildConfig?>(args) {
-                        if (it is BuildConfig) runBlocking {
-                            raiseEvent(
-                                PoolEvent.CreateTask,
-                                Pipe<BuildConfig, String>(it) { ret -> println("[$args]$ret") })
+                        if (it is BuildConfig) list.getOrNull(2).let { force ->
+                            runBlocking {
+                                raiseEvent(
+                                    PoolEvent.CreateTask,
+                                    Pipe<BuildConfig, String>(
+                                        if (force == "-f") it + IncompleteBuildConfig(
+                                            extraParas = hashMapOf("i" to Calendar.getInstance().timeInMillis)
+                                        )
+                                        else it) { ret -> println("[$args]$ret") })
+                            }
                         }
                         else println("[Input]Can not find \"$args\"")
                     }
