@@ -63,6 +63,14 @@ data class BuildConfig(
         return other + this
     }
 
+    operator fun get(key: String): Any? {
+        return extraParas[key]
+    }
+
+    operator fun set(key: String, value: Any) {
+        extraParas[key] = value
+    }
+
     fun conflicts(other: BuildConfig) = this.getSource() == other.getSource()
 
     fun isInvalid(): Boolean {
