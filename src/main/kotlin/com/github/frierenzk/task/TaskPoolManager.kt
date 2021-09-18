@@ -62,14 +62,15 @@ class TaskPoolManager : DispatcherBase() {
     }
 
     private fun taskCheck() {
-        taskPool.filter { it.value.status.isEnd() }.keys.map { it }.forEach {
-            taskPool[it]?.close()
-            taskPool.remove(it)
+        taskPool.filterValues { it.status.isEnd() }.forEach {
+            it.value.close()
+            taskPool.remove(it.key)
+            printlnWithPushLogs(it.key.name, "Removed")
         }
         var count = taskPool.filter { it.value.status.isWorking() }.size
-        for (i in taskPool.filter { it.value.status.isWaiting() }) {
+        for (i in taskPool.filterValues { it.status.isWaiting() }) {
             if (count >= maxCount) break
-            if (taskPool.filter { it.value.status.isWorking() }.keys.map { it }
+            if (taskPool.filterValues { it.status.isWorking() }.keys.map { it }
                     .findLast { it.conflicts(i.key) } != null) continue
             i.value.run()
             count++
@@ -96,9 +97,9 @@ class TaskPoolManager : DispatcherBase() {
     }
 
     private fun stopTask(args: Pipe<String, String>) {
-        val configs = taskPool.keys.filter { it.name == args.data }
+        val configs = taskPool.filterKeys { it.name == args.data }
         if (configs.isNotEmpty()) {
-            configs.forEach { taskPool[it]?.stop() }
+            configs.forEach { it.value.stop() }
             args.callback("Success")
         } else args.callback("Can not find target task")
     }
