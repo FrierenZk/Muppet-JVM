@@ -52,8 +52,9 @@ object ShellUtils {
         }
 
         private fun closeHandle(p: ProcessHandle?) {
-            p?.destroyForcibly()
             p?.descendants()?.forEach { closeHandle(it) }
+            if (p?.supportsNormalTermination() == true) p.destroy()
+            else p?.destroyForcibly()
         }
 
         val isAlive: Boolean
