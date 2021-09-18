@@ -1,5 +1,6 @@
 package com.github.frierenzk.task
 
+import com.github.frierenzk.config.ConfigEvent
 import com.github.frierenzk.config.IncompleteBuildConfig
 import com.github.frierenzk.dispatcher.DispatcherBase
 import com.github.frierenzk.dispatcher.EventType
@@ -25,7 +26,7 @@ class TaskPoolManager : DispatcherBase() {
     private val checkTrigger by lazy { Channel<Unit>(4) }
     private val checkTicker by lazy { ticker(delayMillis = 30 * 1000L) }
 
-    private val taskPool by lazy { ConcurrentHashMap<BuildConfig, CompileTask>() }
+    private val taskPool by lazy { ConcurrentHashMap<BuildConfig, TaskEntity>() }
     private val maxCount by lazy { Runtime.getRuntime().availableProcessors().let { if (it > 1) it else 1 } }
     private val calendarFormatter = SimpleDateFormat("[MM-dd HH:mm:ss]")
 
@@ -72,7 +73,7 @@ class TaskPoolManager : DispatcherBase() {
             if (count >= maxCount) break
             if (taskPool.filterValues { it.status.isWorking() }.keys.map { it }
                     .findLast { it.conflicts(i.key) } != null) continue
-            i.value.run()
+            i.value.start()
             count++
         }
     }
@@ -83,10 +84,17 @@ class TaskPoolManager : DispatcherBase() {
             return
         }
         try {
-            val timeStamp = IncompleteBuildConfig(extraParas = hashMapOf("timeStamp" to Calendar.getInstance().time))
-            taskPool[args.data] = CompileTask.create(args.data + timeStamp).apply {
-                onPush = { printlnWithPushLogs(args.data.name, it) }
-                onUpdateStatus = { runBlocking { checkTrigger.send(Unit) } }
+            taskPool[args.data] = TaskEntity(args.data).apply {
+                push = { printlnWithPushLogs(args.data.name, it) }
+                finish = { runBlocking { checkTrigger.send(Unit) } }
+                updateConfig = {
+                    runBlocking {
+                        raiseEvent(ConfigEvent.ModifyConfig,
+                            Pipe<IncompleteBuildConfig, String>(it) {
+                                printlnWithPushLogs(args.data.name, "Config updated with execution")
+                            })
+                    }
+                }
             }
             checkTrigger.trySend(Unit)
             args.callback("Success")
