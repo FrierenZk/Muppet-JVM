@@ -70,12 +70,14 @@ class InputListener : DispatcherBase() {
                     println("[Input]: stop $args info = $it")
                 })
             }
-
             "trigger" -> list.getOrNull(1).let { args ->
                 if (args is String) raiseEvent(TickerEvent.Trigger,
                     Pipe<String, String>(args) { println("[Input] trigger $args info = $it") })
             }
-
+            "waiting" -> raiseEvent(PoolEvent.WaitingList,
+                Pipe.callback<List<String>> { println(it.joinToString("; ")) })
+            "working" -> raiseEvent(PoolEvent.WorkingList,
+                Pipe.callback<List<String>> { println(it.joinToString("; ")) })
         }
     }
 
