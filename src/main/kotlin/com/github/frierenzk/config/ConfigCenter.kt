@@ -52,7 +52,7 @@ class ConfigCenter : DispatcherBase() {
     }
 
     private fun getBuildConfig(args: Pipe<String, BuildConfig?>) {
-        args.callback(buildList[args.data])
+        args.callback(buildList[args.data]?.deepCopy())
     }
 
     private fun getBuildConfigList(args: Pipe<Unit, Map<String, String>>) {

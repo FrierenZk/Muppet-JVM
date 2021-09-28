@@ -9,7 +9,7 @@ data class IncompleteBuildConfig(
     val profile: String? = null,
     val extraParas: HashMap<String, Any> = HashMap(),
 ) {
-    constructor(config: BuildConfig) : this(config.name, config.category, config.profile, config.extraParas)
+    constructor(config: BuildConfig) : this(config.name, config.category, config.profile, HashMap(config.extraParas))
 
     operator fun plus(other: IncompleteBuildConfig): IncompleteBuildConfig {
         return IncompleteBuildConfig(
@@ -28,7 +28,7 @@ data class IncompleteBuildConfig(
 
     fun toConf(): BuildConfig? {
         return if (name is String && category is String && profile is String)
-            BuildConfig(name, category, profile, extraParas).let { if (it.isInvalid()) null else it }
+            BuildConfig(name, category, profile, HashMap(extraParas)).let { if (it.isInvalid()) null else it }
         else null
     }
 

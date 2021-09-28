@@ -84,7 +84,7 @@ class TaskPoolManager : DispatcherBase() {
             return
         }
         try {
-            taskPool[args.data] = TaskEntity(args.data).apply {
+            taskPool[args.data.deepCopy()] = TaskEntity(args.data).apply {
                 push = { printlnWithPushLogs(args.data.name, it) }
                 finish = { runBlocking { checkTrigger.send(Unit) } }
                 updateConfig = {

@@ -77,4 +77,11 @@ data class BuildConfig(
         for (i in arrayOf({ this.name == "" }, { this.category == "" }, { this.profile == "" })) if (i()) return true
         return false
     }
+
+    fun deepCopy(
+        name: String = this.name,
+        category: String = this.category,
+        profile: String = this.profile,
+        extraParas: HashMap<String, Any> = HashMap(this.extraParas),
+    ) = BuildConfig(name, category, profile, extraParas)
 }
