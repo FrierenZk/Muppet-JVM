@@ -54,7 +54,7 @@ class Linkage : DispatcherBase() {
     }
 
     private fun broadCast(args: Pipe<JsonObject, Unit>) {
-        server.broadcastOperations?.sendEvent("broadcast_logs", args.data)
+        server.broadcastOperations?.sendEvent("broadcast_logs", args.data.toString())
     }
 
     private fun runServer() {
