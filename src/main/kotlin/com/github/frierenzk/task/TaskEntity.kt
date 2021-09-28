@@ -5,7 +5,6 @@ import com.github.frierenzk.utils.ShellUtils
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.consumeEach
-import kotlinx.coroutines.channels.trySendBlocking
 import java.io.File
 import java.io.IOException
 import java.net.URI
@@ -154,7 +153,7 @@ class TaskEntity(val config: BuildConfig) {
                 finish?.invoke(status)
             }
         }
-        stream.trySendBlocking { initTask() }
+        scope.launch { initTask() }
     }
 
     fun stop() {
