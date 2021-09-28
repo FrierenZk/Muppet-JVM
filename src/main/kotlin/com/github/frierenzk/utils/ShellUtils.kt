@@ -48,7 +48,13 @@ object ShellUtils {
 
         fun stop(): Int {
             closeHandle(process?.toHandle())
-            return process?.exitValue() ?: -1
+            if (process?.isAlive == true)
+                process?.waitFor(3000, TimeUnit.MILLISECONDS)
+            return try {
+                process?.exitValue() ?: -1
+            } catch (ignore: IllegalThreadStateException) {
+                -1
+            }
         }
 
         private fun closeHandle(p: ProcessHandle?) {
