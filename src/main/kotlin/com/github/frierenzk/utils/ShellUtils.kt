@@ -1,7 +1,17 @@
 package com.github.frierenzk.utils
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
+import java.nio.file.attribute.PosixFilePermission
+import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.bufferedWriter
+import kotlin.io.path.createTempFile
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.pathString
 
 object ShellUtils {
     fun exec(command: List<String>): Process = object : Process() {
@@ -22,7 +32,23 @@ object ShellUtils {
     fun exec(commands: List<List<String>>): Process = object : Process() {
         override val process by lazy {
             try {
-                ProcessBuilder("bash", "-c", commands.joinToString(" && ") { it.joinToString(" ") }).start()
+                val file = createTempFile(suffix = ".sh",
+                    attributes = arrayOf(PosixFilePermissions.asFileAttribute(setOf(
+                        PosixFilePermission.OWNER_WRITE,
+                        PosixFilePermission.OWNER_READ,
+                        PosixFilePermission.OWNER_EXECUTE))))
+                file.bufferedWriter().use { writer ->
+                    commands.map { it.joinToString(" ") }.forEach {
+                        writer.appendLine(it)
+                    }
+                    writer.flush()
+                }
+                ProcessBuilder("bash", "-c", "\"${file.pathString}\"").start().also {
+                    CoroutineScope(Dispatchers.IO).launch {
+                        delay(3 * 1000L)
+                        runCatching { file.deleteIfExists() }.onFailure { it.printStackTrace() }
+                    }
+                }
             } catch (exception: Exception) {
                 exception.printStackTrace()
                 null
