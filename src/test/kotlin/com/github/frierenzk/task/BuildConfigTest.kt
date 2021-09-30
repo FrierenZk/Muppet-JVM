@@ -57,7 +57,7 @@ internal class BuildConfigTest {
     @Test
     @Order(4)
     fun parse() {
-        val conf = buildConfig + IncompleteBuildConfig(profile = "1234")
+        val conf = buildConfig + IncompleteBuildConfig(profile = "1234",extraParas = hashMapOf("projectDir" to "1234"))
         println(ConfigOperator.projectGson.toJson(conf))
         assertFalse { conf.isInvalid() }
         val conf2 = ConfigOperator.projectGson.fromJson(ConfigOperator.projectGson.toJson(conf),IncompleteBuildConfig::class.java).toConf()
