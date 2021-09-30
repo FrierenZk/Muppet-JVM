@@ -1,6 +1,7 @@
 package com.github.frierenzk.config
 
 import com.github.frierenzk.task.BuildConfig
+import com.github.frierenzk.task.BuildConfigAdaptor
 import com.github.frierenzk.ticker.TickerConfig
 import com.github.frierenzk.ticker.TickerConfigAdaptor
 import com.github.frierenzk.utils.TypeUtils.castIntoJsonObject
@@ -13,6 +14,7 @@ import kotlin.concurrent.write
 object ConfigOperator {
     val projectGson: Gson by lazy {
         GsonBuilder()
+            .registerTypeAdapter(BuildConfig::class.java, BuildConfigAdaptor())
             .registerTypeAdapter(TickerConfig::class.java, TickerConfigAdaptor())
             .setPrettyPrinting().create()
     }
