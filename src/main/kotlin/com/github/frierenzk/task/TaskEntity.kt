@@ -120,8 +120,37 @@ class TaskEntity(val config: BuildConfig) {
                     val file = dir.listFiles()?.findLast { it.name.contains("tar.gz") }
                     if (file is File) {
                         if (file.length() > 1024 * 1024) {
-                            val command =
-                                listOf("sudo", "sshpass", "-p", "654321", "scp", file.path, config.getUpload())
+                            //Check path
+                            val pathCheck: (String) -> Boolean = { path: String ->
+                                var result = false
+                                currentShell = ShellUtils.exec(listOf(
+                                    listOf("if", "sshpass", "-p", BuildConfig.uploadPassword, "ssh",
+                                        "${BuildConfig.uploadUser}@${BuildConfig.uploadAddress}",
+                                        "'[ -d $path ]'"),
+                                    listOf("then", "echo", "Yes"),
+                                    listOf("else", "echo", "No"),
+                                    listOf("fi")))
+                                currentShell?.outBuffer?.useLines { lines ->
+                                    lines.forEach { if (it.contains("Yes")) result = true }
+                                }
+                                result
+                                //ShellUtils.exec(command).outBuffer?.readLines()?.any { it.contains("Yes") } ?: false
+                            }
+                            var path = "/volume1/version"
+                            val pathArray = config.getUpload().let {
+                                it.substring(it.indexOf(path) + path.length).split('/').filter { it.isNotBlank() }
+                            }
+                            for (seg in pathArray) {
+                                path = "$path/$seg"
+                                if (pathCheck(path)) continue
+                                else currentShell =
+                                    ShellUtils.exec(listOf("sshpass", "-p", BuildConfig.uploadPassword, "ssh",
+                                        "${BuildConfig.uploadUser}@${BuildConfig.uploadAddress}", "mkdir", path))
+                                        .also { push?.invoke("Create upload path $path") }
+                            }
+                            //Upload
+                            val command = listOf("sshpass", "-p", BuildConfig.uploadPassword,
+                                "scp", file.path, config.getUpload())
                             var loop = true
                             while (loop) {
                                 currentShell = ShellUtils.exec(command)
@@ -134,9 +163,9 @@ class TaskEntity(val config: BuildConfig) {
                                     status.isWorking()
                                 else errorClean(Exception(list.joinToString("\r\n")))
                             }
-                        } else errorClean(InvalidParameterException("Image size is not right : ${file.length() / 1024}KiB"))
-                    } else errorClean(InvalidParameterException("Can not find image"))
-                } else errorClean(InvalidParameterException("Invalid directory path $dir"))
+                        } else errorClean(Exception("Image size is not right : ${file.length() / 1024}KiB"))
+                    } else errorClean(Exception("Can not find image"))
+                } else errorClean(Exception("Invalid directory path $dir"))
             }
         }
     }
