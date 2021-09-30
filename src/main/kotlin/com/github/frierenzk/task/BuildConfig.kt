@@ -11,7 +11,9 @@ data class BuildConfig(
     val extraParas: HashMap<String, Any> = hashMapOf(),
 ) {
     companion object {
-        private val uploadAddress by lazy { configs.get("uploadAddress").asString!! }
+        val uploadAddress by lazy { configs.get("uploadAddress").asString!! }
+        val uploadUser by lazy { configs.get("uploadUser")?.asString ?: "buildmanager" }
+        val uploadPassword by lazy { configs.get("uploadPassword")?.asString ?: "654321" }
         private val configs by lazy {
             ConfigOperator.loadBuildConfigs().also {
                 val version = this::class.java.`package`.implementationVersion
@@ -41,9 +43,9 @@ data class BuildConfig(
     fun getUpload(): String {
         var upload = extraParas["upload"].let { if (it is String) it else null } ?: "\${default}"
         mapOf(
-            "default" to "buildmanager@$uploadAddress:/volume1/version/$category/${projectDir ?: name}",
-            "base" to "buildmanager@$uploadAddress:/volume1/version",
-            "version" to "buildmanager@$uploadAddress:/volume1/version",
+            "default" to "$uploadUser@$uploadAddress:/volume1/version/$category/${projectDir ?: name}",
+            "base" to "$uploadUser@$uploadAddress:/volume1/version",
+            "version" to "$uploadUser@$uploadAddress:/volume1/version",
             "category" to category,
             "name" to name,
             "projectDir" to (projectDir ?: name)
