@@ -51,9 +51,8 @@ tasks {
     }
 }
 
-fun getGitID(): String {
-    val p = Runtime.getRuntime().exec("git rev-parse --short HEAD")
-    val id = p?.inputStream?.bufferedReader()?.readLine()
-    if (id is String && id.isNotBlank()) return id.trim()
-    else return "unknown"
-}
+fun getGitID(): String =
+    Runtime.getRuntime().exec("git rev-parse --short HEAD")?.inputStream?.bufferedReader()?.readLine().let {
+        if (it is String && it.toLongOrNull(radix = 16) is Long) it.trim()
+        else "unknown"
+    }
