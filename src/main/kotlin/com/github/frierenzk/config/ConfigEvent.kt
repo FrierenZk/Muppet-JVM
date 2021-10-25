@@ -8,6 +8,7 @@ enum class ConfigEvent : EventType {
     Save,
     GetConfig,
     GetConfigList,
+    GetRelativeConfig,
     AddConfig,
     ModifyConfig,
     DeleteConfig,

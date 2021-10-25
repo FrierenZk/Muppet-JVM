@@ -35,6 +35,8 @@ class ConfigCenter : DispatcherBase() {
                 ConfigEvent.GetConfig -> args.runIf(args.isPipe<String, BuildConfig?>()) { getBuildConfig(args.asPipe()!!) }
                 ConfigEvent.GetConfigList ->
                     args.runIf(args.isCallbackPipe<Map<String, String>>()) { getBuildConfigList(args.asPipe()!!) }
+                ConfigEvent.GetRelativeConfig ->
+                    args.runIf(args.isPipe<String, List<String>>()) { getRelativeConfigList(args.asPipe()!!) }
                 ConfigEvent.AddConfig -> args.runIf(args.isPipe<BuildConfig, String>()) { addBuildConfig(args.asPipe()!!) }
                 ConfigEvent.ModifyConfig -> args.runIf(args.isPipe<IncompleteBuildConfig, String>()) {
                     modifyBuildConfig(args.asPipe()!!)
@@ -59,6 +61,14 @@ class ConfigCenter : DispatcherBase() {
         val map = HashMap<String, String>()
         map.putAll(buildList.map { Pair(it.key, it.value.category) })
         args.callback(map)
+    }
+
+    private fun getRelativeConfigList(args: Pipe<String, List<String>>) {
+        args.callback(buildList.filter {
+            it.value.name.contains(args.data) || it.value.category.contains(args.data)
+                    || it.value.profile.contains(args.data) || it.value.projectDir?.contains(args.data) ?: false
+                    || it.value.extraParas.filterValues { it.toString().contains(args.data) }.isNotEmpty()
+        }.map { it.value.name })
     }
 
     private fun addBuildConfig(args: Pipe<BuildConfig, String>) {
