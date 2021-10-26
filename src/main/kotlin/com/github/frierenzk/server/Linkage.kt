@@ -35,7 +35,6 @@ class Linkage : DispatcherBase() {
         when (event) {
             is ServerEvent -> when (event) {
                 ServerEvent.Default -> println("$event shouldn't be used")
-                ServerEvent.UpdateList -> broadCastUpdateList()
                 ServerEvent.BroadCast ->
                     args.runIf(args.isDataPipe<JsonObject>()) { broadCast(args.asDataPipe()!!) }
                 ServerEvent.TaskFinish ->
@@ -43,10 +42,6 @@ class Linkage : DispatcherBase() {
                 else -> println(event)
             }
         }
-    }
-
-    private fun broadCastUpdateList() {
-        server.broadcastOperations?.sendEvent("update_available_list")
     }
 
     private fun broadCastFinish(args: Pipe<String, Unit>) {
@@ -69,7 +64,61 @@ class Linkage : DispatcherBase() {
         server.addDisconnectListener { client ->
             println("${client.sessionId} disconnected")
         }
-        server.addEventListener("set_add_task", String::class.java) { _, data, ack ->
+        //Config
+        server.addEventListener("get_config_list", Any::class.java) { _, _, ack ->
+            val pipe = Pipe.callback<Map<String, String>> {
+                ack.sendAckData(projectGson.toJson(it))
+            }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfigList, pipe) }
+        }
+        server.addEventListener("get_config", String::class.java) { _, data, ack ->
+            val pipe = Pipe<String, BuildConfig>(data) {
+                ack.sendAckData(projectGson.toJson(it))
+            }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfig, pipe) }
+        }
+        server.addEventListener("get_relative_config", String::class.java) { _, data, ack ->
+            val pipe = Pipe<String, List<String>>(data) {
+                ack.sendAckData(projectGson.toJson(it))
+            }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetRelativeConfig, pipe) }
+        }
+        server.addEventListener("reload_config", Any::class.java) { _, _, ack ->
+            val pipe = Pipe.callback<String> {
+                ack.sendAckData(it)
+            }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.Reload, pipe) }
+        }
+        server.addEventListener("add_config", String::class.java) { _, data, ack ->
+            try {
+                projectGson.fromJson(data, IncompleteBuildConfig::class.java)
+            } catch (exception: Exception) {
+                exception.printStackTrace()
+                null
+            }?.toConf().let { conf ->
+                if (conf is BuildConfig) scope.launch(listenerContext) {
+                    raiseEvent(ConfigEvent.AddConfig, Pipe<BuildConfig, String>(conf) { ack.sendAckData(it) })
+                } else ack.sendAckData("Invalid data received $data")
+            }
+        }
+        server.addEventListener("modify_config", String::class.java) { _, data, ack ->
+            val conf = try {
+                projectGson.fromJson(data, IncompleteBuildConfig::class.java)
+            } catch (exception: Exception) {
+                exception.printStackTrace()
+                null
+            }
+            if (conf is IncompleteBuildConfig && !conf.isEmpty()) scope.launch(listenerContext) {
+                raiseEvent(ConfigEvent.ModifyConfig, Pipe<IncompleteBuildConfig, String>(conf) { ack.sendAckData(it) })
+            } else ack.sendAckData("Invalid data received $data")
+        }
+        server.addEventListener("delete_config", String::class.java) { _, data, ack ->
+            val pipe = Pipe<String, String>(data) {
+                ack.sendAckData(it)
+            }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.DeleteConfig, pipe) }
+        }
+        server.addEventListener("add_task", String::class.java) { _, data, ack ->
             var conf: IncompleteBuildConfig? = null
             val name: String = if (isJsonArrayOrObject(data)) {
                 val jsonObject = castIntoJsonObject(JsonParser.parseString(data))
@@ -82,86 +131,41 @@ class Linkage : DispatcherBase() {
                 }
             } else data
             scope.launch(listenerContext) {
-                raiseEvent(ConfigEvent.GetConfig, Pipe<String, BuildConfig>(name) {
+                raiseEvent(ConfigEvent.GetConfig, Pipe<String, BuildConfig?>(name) {
                     runBlocking {
-                        raiseEvent(PoolEvent.CreateTask,
-                            Pipe<BuildConfig, String>(it.let { if (conf is IncompleteBuildConfig) it + conf else it })
-                            { ret -> ack.sendAckData(ret) })
+                        val con = if (it is BuildConfig) {
+                            if (conf is IncompleteBuildConfig) it + conf
+                            else it
+                        } else conf?.toConf()
+                        if (con is BuildConfig) raiseEvent(PoolEvent.CreateTask,
+                            Pipe<BuildConfig, String>(con) { ret -> ack.sendAckData(ret) })
+                        else ack.sendAckData("Invalid Parameters received")
                     }
                 })
             }
         }
-        server.addEventListener("set_stop_task", String::class.java) { _, data, ack ->
-            val pipe = Pipe<String, String>(data) {
-                ack.sendAckData(it)
-            }
+        //Pool
+        server.addEventListener("get_task_list", Any::class.java) { _, _, ack ->
+            val pipe = Pipe.callback<List<Int>> { ack.sendAckData(projectGson.toJson(it)) }
+            scope.launch(listenerContext) { raiseEvent(PoolEvent.ProcessingList, pipe) }
+        }
+        server.addEventListener("stop_task", Int::class.java) { _, data, ack ->
+            val pipe = Pipe<Int, String>(data) { ack.sendAckData(it) }
             scope.launch(listenerContext) { raiseEvent(PoolEvent.StopTask, pipe) }
         }
-        server.addEventListener("get_waiting_list", Any::class.java) { _, _, ack ->
-            val pipe = Pipe.callback<List<String>> {
-                ack.sendAckData(projectGson.toJson(it))
-            }
-            scope.launch(listenerContext) { raiseEvent(PoolEvent.WaitingList, pipe) }
+        server.addEventListener("get_task_status", Int::class.java) { _, data, ack ->
+            val pipe = Pipe<Int, String>(data) { ack.sendAckData(it) }
+            scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskStatus, pipe) }
         }
-        server.addEventListener("get_processing_list", Any::class.java) { _, _, ack ->
-            val pipe = Pipe.callback<List<String>> {
-                ack.sendAckData(projectGson.toJson(it))
-            }
-            scope.launch(listenerContext) { raiseEvent(PoolEvent.WorkingList, pipe) }
+        server.addEventListener("get_task_name", Int::class.java) { _, data, ack ->
+            val pipe = Pipe<Int, String>(data) { ack.sendAckData(it) }
+            scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskName, pipe) }
         }
-        server.addEventListener("get_available_list", Any::class.java) { _, _, ack ->
-            val pipe = Pipe.callback<Map<String, String>> {
-                ack.sendAckData(projectGson.toJson(it))
-            }
-            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfigList, pipe) }
+        server.addEventListener("get_task_config", Int::class.java) { _, data, ack ->
+            val pipe = Pipe<Int, BuildConfig>(data) { ack.sendAckData(projectGson.toJson(it)) }
+            scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskConfig, pipe) }
         }
-        server.addEventListener("reload_config", Any::class.java) { _, _, ack ->
-            val pipe = Pipe.callback<String> {
-                ack.sendAckData(it)
-            }
-            scope.launch(listenerContext) { raiseEvent(ConfigEvent.Reload, pipe) }
-        }
-        server.addEventListener("get_task_status", String::class.java) { _, data, ack ->
-            val pipe = Pipe<String, String>(data) {
-                ack.sendAckData(it)
-            }
-            scope.launch(listenerContext) { raiseEvent(PoolEvent.TaskStatus, pipe) }
-        }
-        server.addEventListener("get_task_config", String::class.java) { _, data, ack ->
-            val pipe = Pipe<String, BuildConfig>(data) {
-                ack.sendAckData(projectGson.toJson(it))
-            }
-            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfig, pipe) }
-        }
-        server.addEventListener("set_add_config", String::class.java) { _, data, ack ->
-            try {
-                projectGson.fromJson(data, IncompleteBuildConfig::class.java)
-            } catch (exception: Exception) {
-                exception.printStackTrace()
-                null
-            }?.toConf().let { conf ->
-                if (conf is BuildConfig) scope.launch(listenerContext) {
-                    raiseEvent(ConfigEvent.AddConfig, Pipe<BuildConfig, String>(conf) { ack.sendAckData(it) })
-                } else ack.sendAckData("Invalid data received $data")
-            }
-        }
-        server.addEventListener("set_change_config", String::class.java) { _, data, ack ->
-            val conf = try {
-                projectGson.fromJson(data, IncompleteBuildConfig::class.java)
-            } catch (exception: Exception) {
-                exception.printStackTrace()
-                null
-            }
-            if (conf is IncompleteBuildConfig && !conf.isEmpty()) scope.launch(listenerContext) {
-                raiseEvent(ConfigEvent.ModifyConfig, Pipe<IncompleteBuildConfig, String>(conf) { ack.sendAckData(it) })
-            } else ack.sendAckData("Invalid data received $data")
-        }
-        server.addEventListener("set_delete_config", String::class.java) { _, data, ack ->
-            val pipe = Pipe<String, String>(data) {
-                ack.sendAckData(it)
-            }
-            scope.launch(listenerContext) { raiseEvent(ConfigEvent.DeleteConfig, pipe) }
-        }
+        //Ticker
         server.addEventListener("get_timer_config", String::class.java) { _, data, ack ->
             val pipe = Pipe<String, TickerConfig?>(data) {
                 ack.sendAckData(projectGson.toJson(it))
