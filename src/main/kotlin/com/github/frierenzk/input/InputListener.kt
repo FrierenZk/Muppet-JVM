@@ -10,6 +10,8 @@ import com.github.frierenzk.task.PoolEvent
 import com.github.frierenzk.ticker.TickerEvent
 import com.github.frierenzk.utils.MEvent
 import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.trySendBlocking
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.newSingleThreadContext
 import kotlinx.coroutines.runBlocking
@@ -66,18 +68,38 @@ class InputListener : DispatcherBase() {
                 )
             }
             "stop" -> list.getOrNull(1).let { args ->
-                if (args is String) raiseEvent(PoolEvent.StopTask, Pipe<String, String>(args) {
-                    println("[Input]: stop $args info = $it")
-                })
+                if (args is String) {
+                    raiseEvent(PoolEvent.ProcessingList, Pipe.callback<List<Int>> {
+                        it.forEach { task ->
+                            runBlocking {
+                                raiseEvent(PoolEvent.GetTaskName, Pipe<Int, String>(task) {
+                                    if (it == args) runBlocking {
+                                        raiseEvent(PoolEvent.StopTask,
+                                            Pipe<Int, String>(task) { println("[Input]: stop $args info = $it") })
+                                    }
+                                })
+                            }
+                        }
+                    })
+                }
             }
             "trigger" -> list.getOrNull(1).let { args ->
                 if (args is String) raiseEvent(TickerEvent.Trigger,
                     Pipe<String, String>(args) { println("[Input] trigger $args info = $it") })
             }
-            "waiting" -> raiseEvent(PoolEvent.WaitingList,
-                Pipe.callback<List<String>> { println(it.joinToString("; ")) })
-            "working" -> raiseEvent(PoolEvent.WorkingList,
-                Pipe.callback<List<String>> { println(it.joinToString("; ")) })
+            "working" -> raiseEvent(PoolEvent.ProcessingList, Pipe.callback<List<Int>> {
+                if (it.isNotEmpty()) it.forEach {
+                    val channel = arrayOf(Channel<String>(1), Channel(1))
+                    runBlocking {
+                        raiseEvent(PoolEvent.GetTaskName,
+                            Pipe<Int, String>(it) { channel[0].trySendBlocking(it) })
+                        raiseEvent(PoolEvent.GetTaskStatus,
+                            Pipe<Int, String>(it) { channel[1].trySendBlocking(it) })
+                    }
+                    scope.launch { println("${channel[0].receive()}:${channel[1].receive()}") }
+                }
+                else println("No working tasks")
+            })
         }
     }
 
