@@ -47,24 +47,24 @@ class TaskPoolManager : DispatcherBase() {
         }
     }
 
-    private fun printlnWithPushLogs(name: Int, line: String) {
+    private fun printlnWithPushLogs(tag: Int, name: String, line: String) {
         if (line.isBlank()) return
         val time = calendarFormatter.format(Calendar.getInstance().time)
         runBlocking {
             raiseEvent(ServerEvent.BroadCast, Pipe.data(JsonObject().apply {
-                addProperty("name", name.toString())
+                addProperty("name", tag.toString())
                 addProperty("time", time)
                 addProperty("msg", line)
             }))
         }
-        println("[${taskPool[name]?.config?.name ?: "unknown"}]${time}: $line")
+        println("[$name]$time: $line")
     }
 
     private fun taskCheck() {
         taskPool.filterValues { it.status.isEnd() }.forEach {
             it.value.close()
             taskPool.remove(it.key)
-            printlnWithPushLogs(it.key, "Removed")
+            printlnWithPushLogs(it.key, it.value.config.name, "Removed")
         }
         var count = taskPool.filter { it.value.status.isWorking() }.size
         for (i in taskPool.filterValues { it.status.isWaiting() }) {
@@ -83,13 +83,15 @@ class TaskPoolManager : DispatcherBase() {
         }
         try {
             taskPool[args.data.hashCode()] = TaskEntity(args.data).apply {
-                push = { printlnWithPushLogs(args.data.hashCode(), it) }
+                push = { printlnWithPushLogs(args.data.hashCode(), args.data.name, it) }
                 finish = { runBlocking { checkTrigger.send(Unit) } }
                 updateConfig = {
                     runBlocking {
                         raiseEvent(ConfigEvent.ModifyConfig,
                             Pipe<IncompleteBuildConfig, String>(it) {
-                                printlnWithPushLogs(args.data.hashCode(), "Config updated with execution")
+                                printlnWithPushLogs(args.data.hashCode(),
+                                    args.data.name,
+                                    "Config updated with execution")
                             })
                     }
                 }
