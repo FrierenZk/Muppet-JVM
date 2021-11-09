@@ -147,6 +147,7 @@ class TaskEntity(val config: BuildConfig) {
                                     ShellUtils.exec(listOf("sshpass", "-p", BuildConfig.uploadPassword, "ssh",
                                         "${BuildConfig.uploadUser}@${BuildConfig.uploadAddress}", "mkdir", path))
                                         .also { push?.invoke("Create upload path $path") }
+                                runBlocking { delay(100) }
                             }
                             //Upload
                             val command = listOf("sshpass", "-p", BuildConfig.uploadPassword,
