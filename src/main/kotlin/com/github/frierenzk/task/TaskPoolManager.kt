@@ -43,6 +43,7 @@ class TaskPoolManager : DispatcherBase() {
                 PoolEvent.GetTaskStatus ->
                     args.runIf(args.isPipe<Int, String>()) { getTaskStatus(args.asPipe()!!) }
                 PoolEvent.GetTaskName -> args.runIf(args.isPipe<Int, String>()) { getTaskName(args.asPipe()!!) }
+                PoolEvent.GetTaskConfig -> args.runIf(args.isPipe<Int, BuildConfig?>()) { getTaskConfig(args.asPipe()!!) }
             }
         }
     }
@@ -125,6 +126,10 @@ class TaskPoolManager : DispatcherBase() {
     private fun getTaskName(args: Pipe<Int, String>) {
         val name = taskPool[args.data]?.config?.name ?: "null"
         args.callback(name)
+    }
+
+    private fun getTaskConfig(args: Pipe<Int, BuildConfig?>) {
+        args.callback(taskPool[args.data]?.config?.deepCopy())
     }
 
     override fun init() {
