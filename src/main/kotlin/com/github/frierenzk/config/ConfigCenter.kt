@@ -47,7 +47,7 @@ class ConfigCenter : DispatcherBase() {
                 ConfigEvent.ModifyTicker -> args.runIf(args.isPipe<IncompleteTickerConfig, String>()) {
                     modifyTicker(args.asPipe()!!)
                 }
-                ConfigEvent.DeleteTicker -> args.runIf(args.isPipe<TickerConfig, String>()) { deleteTicker(args.asPipe()!!) }
+                ConfigEvent.DeleteTicker -> args.runIf(args.isPipe<String, String>()) { deleteTicker(args.asPipe()!!) }
             }
         }
         super.receiveEvent(event, args)
@@ -132,9 +132,9 @@ class ConfigCenter : DispatcherBase() {
         } else args.callback("Invalid values")
     }
 
-    private fun deleteTicker(args: Pipe<TickerConfig, String>) {
-        if (tickers.containsKey(args.data.name)) {
-            tickers.remove(args.data.name)
+    private fun deleteTicker(args: Pipe<String, String>) {
+        if (tickers.containsKey(args.data)) {
+            tickers.remove(args.data)
             ConfigOperator.saveTickerConfig(HashMap(tickers))
             args.callback("Success")
         } else args.callback("Can not find target config")
