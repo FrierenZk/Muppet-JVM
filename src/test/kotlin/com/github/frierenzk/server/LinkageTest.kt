@@ -53,9 +53,8 @@ internal class LinkageTest {
         val testProject = hashMapOf(
             "set_add_task" to ConfigEvent.GetConfig,
             "set_stop_task" to PoolEvent.StopTask,
-            "get_waiting_list" to PoolEvent.WaitingList,
-            "get_processing_list" to PoolEvent.WorkingList,
-            "get_task_status" to PoolEvent.TaskStatus,
+            "get_processing_list" to PoolEvent.ProcessingList,
+            "get_task_status" to PoolEvent.GetTaskStatus,
 
             "reload_config" to ConfigEvent.Reload,
             "get_available_list" to ConfigEvent.GetConfigList,
