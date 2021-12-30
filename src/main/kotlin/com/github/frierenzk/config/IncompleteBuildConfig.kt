@@ -16,7 +16,7 @@ data class IncompleteBuildConfig(
             other.name ?: name,
             other.category ?: category,
             other.profile ?: profile,
-            HashMap(this.extraParas.plus(other.extraParas))
+            HashMap(this.extraParas.plus(other.extraParas).filterNot { it.value == "" })
         ).let { if (it.isEmpty()) throw InvalidParameterException(other.toString()) else it }
     }
 
@@ -28,7 +28,10 @@ data class IncompleteBuildConfig(
 
     fun toConf(): BuildConfig? {
         return if (name is String && category is String && profile is String)
-            BuildConfig(name, category, profile, HashMap(extraParas)).let { if (it.isInvalid()) null else it }
+            BuildConfig(name,
+                category,
+                profile,
+                HashMap(extraParas.filterNot { it.value == "" })).let { if (it.isInvalid()) null else it }
         else null
     }
 

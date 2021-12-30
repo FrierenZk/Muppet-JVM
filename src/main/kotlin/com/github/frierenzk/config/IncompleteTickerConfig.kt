@@ -58,10 +58,10 @@ data class IncompleteTickerConfig(
     }
 
     fun isEmpty(): Boolean {
-        for (i in arrayOf({ this.name == null || this.name == "" },
+        for (i in arrayOf(
+            { this.name == null || this.name == "" },
             { this.delay == null || this.delay <= 0 },
-            { this.config == null || this.config.isEmpty() },
-            { this.ref == null || this.ref == "" }
+            { (this.config == null || this.config.isEmpty()) && (this.ref == null || this.ref == "") },
         )) if (!i()) return false
         return true
     }

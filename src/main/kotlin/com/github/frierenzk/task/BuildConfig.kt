@@ -62,7 +62,7 @@ data class BuildConfig(
     }
 
     operator fun plus(other: IncompleteBuildConfig): BuildConfig {
-        return other + this
+        return (IncompleteBuildConfig(this) + other).toConf()!!
     }
 
     operator fun get(key: String): Any? {

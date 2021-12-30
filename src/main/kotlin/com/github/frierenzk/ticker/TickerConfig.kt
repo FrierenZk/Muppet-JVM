@@ -58,7 +58,7 @@ sealed interface TickerConfig {
     }
 
     operator fun plus(other: IncompleteTickerConfig): TickerConfig {
-        return other + this
+        return (IncompleteTickerConfig(this) + other).toConf()!!
     }
 
     operator fun plus(other: TickerConfig): TickerConfig {
