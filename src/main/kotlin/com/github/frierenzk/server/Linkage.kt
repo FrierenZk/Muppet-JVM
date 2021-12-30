@@ -72,7 +72,7 @@ class Linkage : DispatcherBase() {
             scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfigList, pipe) }
         }
         server.addEventListener("get_config", String::class.java) { _, data, ack ->
-            val pipe = Pipe<String, BuildConfig>(data) {
+            val pipe = Pipe<String, BuildConfig?>(data) {
                 ack.sendAckData(projectGson.toJson(it))
             }
             scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetConfig, pipe) }
@@ -162,7 +162,7 @@ class Linkage : DispatcherBase() {
             scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskName, pipe) }
         }
         server.addEventListener("get_task_config", Int::class.java) { _, data, ack ->
-            val pipe = Pipe<Int, BuildConfig>(data) { ack.sendAckData(projectGson.toJson(it)) }
+            val pipe = Pipe<Int, BuildConfig?>(data) { ack.sendAckData(projectGson.toJson(it)) }
             scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskConfig, pipe) }
         }
         //Ticker
@@ -192,7 +192,7 @@ class Linkage : DispatcherBase() {
                 null
             }
             if (conf is IncompleteTickerConfig && !conf.isEmpty()) scope.launch(listenerContext) {
-                raiseEvent(ConfigEvent.ModifyConfig, Pipe<IncompleteTickerConfig, String>(conf) { ack.sendAckData(it) })
+                raiseEvent(ConfigEvent.ModifyTicker, Pipe<IncompleteTickerConfig, String>(conf) { ack.sendAckData(it) })
             } else ack.sendAckData("Invalid data received $data")
         }
         server.addEventListener("delete_ticker", String::class.java) { _, data, ack ->
