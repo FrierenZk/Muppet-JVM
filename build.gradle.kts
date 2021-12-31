@@ -1,5 +1,5 @@
 plugins {
-    kotlin("jvm") version "1.5.30"
+    kotlin("jvm") version "1.6.10"
 }
 
 val ver = "0.2.6"
@@ -14,14 +14,14 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation(kotlin("reflect"))
-    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.5.2")
+    implementation("org.jetbrains.kotlinx", "kotlinx-coroutines-core", "1.6.0")
 
     implementation("com.corundumstudio.socketio", "netty-socketio", "1.7.19")
-    implementation("com.google.code.gson", "gson", "2.8.7")
+    implementation("com.google.code.gson", "gson", "2.8.9")
 
     testImplementation(kotlin("test-junit5"))
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.2")
-    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.8.2")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.8.2")
     testImplementation("io.socket", "socket.io-client", "1.0.1")
 }
 
@@ -34,10 +34,10 @@ tasks.test {
 
 tasks {
     compileKotlin {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = "17"
     }
     compileTestKotlin {
-        kotlinOptions.jvmTarget = "11"
+        kotlinOptions.jvmTarget = "17"
     }
     jar {
         duplicatesStrategy = DuplicatesStrategy.WARN
