@@ -1,11 +1,13 @@
 package com.github.frierenzk
 
+import com.github.frierenzk.config.ConfigCenter
 import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.IDispatcher
 import com.github.frierenzk.input.InputListener
 import com.github.frierenzk.server.Linkage
 import com.github.frierenzk.task.TaskPoolManager
 import com.github.frierenzk.ticker.TaskTicker
+import com.github.frierenzk.utils.MEvent
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlin.system.exitProcess
@@ -15,6 +17,7 @@ private val handlerCollections by lazy { HashSet<IDispatcher>() }
 
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
+    launch { handlerCollections.add(ConfigCenter().apply { init() }) }
     launch { handlerCollections.add(TaskPoolManager().apply { init() }) }
     launch { handlerCollections.add(Linkage().apply { init() }) }
     launch { handlerCollections.add(InputListener().apply { init() }) }

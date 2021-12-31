@@ -1,6 +1,7 @@
 package com.github.frierenzk.dispatcher
 
 import com.github.frierenzk.utils.UnstableApi
+import kotlin.reflect.full.isSuperclassOf
 
 open class Pipe<T1, T2>(val data: T1, val callback: (T2) -> Unit) {
     companion object {
@@ -22,18 +23,12 @@ open class Pipe<T1, T2>(val data: T1, val callback: (T2) -> Unit) {
         else null
     }
 
-    fun removeGenerics(string: String): String {
-        var result = string
-        while ('<' in result) {
-            result = result.removeRange(result.indexOf('<'), result.indexOf('>') + 1)
-        }
-        return result
-    }
-
     @UnstableApi
     inline fun <reified A, reified B> isPipe(): Boolean {
         //Can not use "callback is (B)->Unit" to check types
-        return data is A && removeGenerics(callback.toString()) == "(${B::class.qualifiedName}) -> ${Unit::class.qualifiedName}"
+        return data is A &&
+                callback::class.java.methods.filter { it.name == "invoke" }
+                    .map { B::class.isSuperclassOf(it.parameters.first().type.kotlin) }.contains(true)
     }
 
     inline fun <reified T> isCallbackPipe() = isPipe<Unit, T>()

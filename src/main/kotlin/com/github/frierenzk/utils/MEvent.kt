@@ -1,4 +1,4 @@
-package com.github.frierenzk
+package com.github.frierenzk.utils
 
 import com.github.frierenzk.dispatcher.EventType
 

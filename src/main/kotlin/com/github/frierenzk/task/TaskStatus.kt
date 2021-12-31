@@ -5,7 +5,8 @@ enum class TaskStatus {
     Working,
     Stopping,
     Finished,
-    Error;
+    Error,
+    Null;
 
     fun isEnd() = isFinished() || isError() || isStopping()
     fun isWaiting() = this == Waiting

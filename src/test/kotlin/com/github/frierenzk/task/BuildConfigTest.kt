@@ -1,57 +1,66 @@
 package com.github.frierenzk.task
 
+import com.github.frierenzk.config.ConfigOperator
+import com.github.frierenzk.config.IncompleteBuildConfig
 import org.junit.jupiter.api.MethodOrderer
 import org.junit.jupiter.api.Order
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestMethodOrder
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 internal class BuildConfigTest {
-    private val buildConfig by lazy {
-        BuildConfig().apply {
-            this.name = "testName"
-            this.category = "testCategory"
-            this.profile = ""
-        }
-    }
+    private val buildConfig by lazy { BuildConfig("testName", "testCategory", "test") }
     private val buildConfig2 by lazy {
-        buildConfig.copy().apply {
-            this.name = "testName2"
-            this.category = "tags"
-            this.sourcePath = "\$default/test"
-        }
+        buildConfig.copy(
+            name = "testName2",
+            category = "tags",
+            extraParas = hashMapOf("source" to "\${default}/test")
+        )
     }
     private val buildConfig3 by lazy {
-        buildConfig.copy().apply {
-            this.name = "testName3"
-            this.projectDir = "testDir"
-            this.category = "branches"
-            this.svnBasePath = "\$default/.."
-            this.uploadPath = "\$category/\$name/1234"
-        }
+        buildConfig.plus(
+            BuildConfig(
+                "testName3",
+                "branches",
+                "null",
+                hashMapOf("svn" to "test", "upload" to "\${category}/\${name}/1234")
+            )
+        )
     }
 
     @Test
     @Order(1)
-    fun getFullSourcePath() {
-        println(buildConfig.getFullSourcePath())
-        println(buildConfig2.getFullSourcePath())
-        println(buildConfig3.getFullSourcePath())
+    fun getSource() {
+        println(buildConfig.getSource())
+        println(buildConfig2.getSource())
+        println(buildConfig3.getSource())
     }
 
     @Test
     @Order(2)
-    fun getFullUploadPath() {
-        println(buildConfig.getFullUploadPath())
-        println(buildConfig2.getFullUploadPath())
-        println(buildConfig3.getFullUploadPath())
+    fun getUpload() {
+        println(buildConfig.getUpload())
+        println(buildConfig2.getUpload())
+        println(buildConfig3.getUpload())
     }
 
     @Test
     @Order(3)
-    fun getFullSvnBasePath() {
-        println(buildConfig.getFullSvnBasePath())
-        println(buildConfig2.getFullSvnBasePath())
-        println(buildConfig3.getFullSvnBasePath())
+    fun equals() {
+        val config = BuildConfig("testName2", "tags", "test", hashMapOf("source" to "\${default}/test"))
+        assertTrue { config == buildConfig2 }
+    }
+
+    @Test
+    @Order(4)
+    fun parse() {
+        val conf = buildConfig + IncompleteBuildConfig(profile = "1234",extraParas = hashMapOf("projectDir" to "1234"))
+        println(ConfigOperator.projectGson.toJson(conf))
+        assertFalse { conf.isInvalid() }
+        val conf2 = ConfigOperator.projectGson.fromJson(ConfigOperator.projectGson.toJson(conf),IncompleteBuildConfig::class.java).toConf()
+        assertEquals(conf,conf2)
     }
 }

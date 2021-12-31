@@ -1,8 +1,10 @@
 package com.github.frierenzk.input
 
-import com.github.frierenzk.MEvent
+import com.github.frierenzk.config.ConfigEvent
 import com.github.frierenzk.dispatcher.Pipe
+import com.github.frierenzk.task.BuildConfig
 import com.github.frierenzk.task.PoolEvent
+import com.github.frierenzk.utils.MEvent
 import kotlinx.coroutines.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.MethodOrderer
@@ -69,11 +71,11 @@ internal class InputListenerTest {
         delay(1000)
         assertEquals(false, listener.raisedEvent.isEmpty)
         assertEquals(MEvent.Exit, listener.raisedEvent.receive().first)
-        assertEquals(PoolEvent.ReloadConfig, listener.raisedEvent.receive().first)
+        assertEquals(ConfigEvent.Reload, listener.raisedEvent.receive().first)
         listener.raisedEvent.receive().let {
-            assertEquals(PoolEvent.AddTask, it.first)
-            val pipe = it.second.asPipe<Map<String, Any>, String>()!!
-            assertEquals("1234", pipe.data["name"])
+            assertEquals(ConfigEvent.GetConfig, it.first)
+            val pipe = it.second.asPipe<String, BuildConfig?>()!!
+            assertEquals("1234", pipe.data)
         }
         listener.raisedEvent.receive().let {
             assertEquals(PoolEvent.StopTask, it.first)
