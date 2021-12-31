@@ -166,6 +166,10 @@ class Linkage : DispatcherBase() {
             scope.launch(listenerContext) { raiseEvent(PoolEvent.GetTaskConfig, pipe) }
         }
         //Ticker
+        server.addEventListener("get_timer_list", Any::class.java) { _, _, ack ->
+            val pipe = Pipe.callback<List<String>> { ack.sendAckData(projectGson.toJson(it)) }
+            scope.launch(listenerContext) { raiseEvent(ConfigEvent.GetTickerList, pipe) }
+        }
         server.addEventListener("get_timer_config", String::class.java) { _, data, ack ->
             val pipe = Pipe<String, TickerConfig?>(data) {
                 ack.sendAckData(projectGson.toJson(it))

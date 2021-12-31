@@ -42,6 +42,7 @@ class ConfigCenter : DispatcherBase() {
                     modifyBuildConfig(args.asPipe()!!)
                 }
                 ConfigEvent.DeleteConfig -> args.runIf(args.isPipe<String, String>()) { deleteBuildConfig(args.asPipe()!!) }
+                ConfigEvent.GetTickerList -> args.runIf(args.isCallbackPipe<List<String>>()) { getTickerList(args.asPipe()!!) }
                 ConfigEvent.GetTicker -> args.runIf(args.isPipe<String, TickerConfig?>()) { getTicker(args.asPipe()!!) }
                 ConfigEvent.AddTicker -> args.runIf(args.isPipe<TickerConfig, String>()) { addTicker(args.asPipe()!!) }
                 ConfigEvent.ModifyTicker -> args.runIf(args.isPipe<IncompleteTickerConfig, String>()) {
@@ -103,6 +104,10 @@ class ConfigCenter : DispatcherBase() {
             ConfigOperator.saveBuildList(HashMap(buildList))
             args.callback("Success")
         } else args.callback("Can not find target config")
+    }
+
+    private fun getTickerList(args: Pipe<Unit, List<String>>) {
+        args.callback(tickers.keys().toList())
     }
 
     private fun getTicker(args: Pipe<String, TickerConfig?>) {

@@ -12,6 +12,7 @@ enum class ConfigEvent : EventType {
     AddConfig,
     ModifyConfig,
     DeleteConfig,
+    GetTickerList,
     GetTicker,
     AddTicker,
     ModifyTicker,
