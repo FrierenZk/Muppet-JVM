@@ -5,6 +5,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.BufferedReader
+import java.io.BufferedWriter
 import java.nio.file.attribute.PosixFilePermission
 import java.nio.file.attribute.PosixFilePermissions
 import java.util.concurrent.TimeUnit
@@ -26,6 +27,7 @@ object ShellUtils {
 
         override var outBuffer: BufferedReader? = process?.inputStream?.bufferedReader()
         override var errorBuffer: BufferedReader? = process?.errorStream?.bufferedReader()
+        override var writer: BufferedWriter? = process?.outputWriter()
     }
 
     @JvmName("execCommands")
@@ -57,12 +59,14 @@ object ShellUtils {
 
         override var outBuffer: BufferedReader? = process?.inputStream?.bufferedReader()
         override var errorBuffer: BufferedReader? = process?.errorStream?.bufferedReader()
+        override var writer: BufferedWriter? = process?.outputWriter()
     }
 
     abstract class Process {
         protected abstract val process: java.lang.Process?
         abstract var outBuffer: BufferedReader?
         abstract var errorBuffer: BufferedReader?
+        abstract var writer: BufferedWriter?
         val returnCode: Int
             get() = try {
                 process?.waitFor(3, TimeUnit.SECONDS)

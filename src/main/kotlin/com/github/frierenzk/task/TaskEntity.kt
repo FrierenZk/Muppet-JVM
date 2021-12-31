@@ -62,7 +62,14 @@ class TaskEntity(val config: BuildConfig) {
                     else listOf("svn", "update", uri.path)
                 }
                 currentShell = ShellUtils.exec(command)
-                scope.launch { currentShell?.outBuffer?.useLines { lines -> lines.forEach { push?.invoke(it) } } }
+                scope.launch {
+                    currentShell?.outBuffer?.useLines { lines ->
+                        lines.forEach {
+                            push?.invoke(it)
+                            if (it.contains("Authentication realm:")) currentShell?.writer?.write("654321\n")
+                        }
+                    }
+                }
                 currentShell?.errorBuffer?.useLines { lines ->
                     lines.forEach { push?.invoke(it);if (it.contains("svn: E")) error = true }
                 }
@@ -76,7 +83,14 @@ class TaskEntity(val config: BuildConfig) {
                     else listOf("svn", "checkout", url, target.path)
                 }
                 currentShell = ShellUtils.exec(command)
-                scope.launch { currentShell?.outBuffer?.useLines { lines -> lines.forEach { push?.invoke(it) } } }
+                scope.launch {
+                    currentShell?.outBuffer?.useLines { lines ->
+                        lines.forEach {
+                            push?.invoke(it)
+                            if (it.contains("Authentication realm:")) currentShell?.writer?.write("654321\n")
+                        }
+                    }
+                }
                 currentShell?.errorBuffer?.useLines { lines ->
                     lines.forEach { push?.invoke(it);if (it.contains("svn: E")) error = true }
                 }
