@@ -210,6 +210,7 @@ class TaskEntity(val config: BuildConfig) {
     fun close() {
         scope.launch { coroutineContext.cancelChildren() }
         stream.close()
+        currentShell?.stop()
         try {
             stream.tryReceive()
         } catch (ignore: Exception) {
