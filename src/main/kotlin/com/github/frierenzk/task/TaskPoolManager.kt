@@ -7,18 +7,16 @@ import com.github.frierenzk.dispatcher.EventType
 import com.github.frierenzk.dispatcher.Pipe
 import com.github.frierenzk.server.ServerEvent
 import com.google.gson.JsonObject
-import kotlinx.coroutines.ObsoleteCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ticker
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.newSingleThreadContext
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.selects.select
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 @ObsoleteCoroutinesApi
+@DelicateCoroutinesApi
 class TaskPoolManager : DispatcherBase() {
     override val eventMonitor = setOf(PoolEvent::class.java)
 

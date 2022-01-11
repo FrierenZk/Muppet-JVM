@@ -13,7 +13,7 @@ import java.nio.file.Path
 import java.security.InvalidParameterException
 import java.util.*
 
-@ObsoleteCoroutinesApi
+@DelicateCoroutinesApi
 class TaskEntity(val config: BuildConfig) {
     var status: TaskStatus = TaskStatus.Waiting
     var push: ((String) -> Unit)? = null

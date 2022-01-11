@@ -3,7 +3,7 @@ package com.github.frierenzk.dispatcher
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 
-@ObsoleteCoroutinesApi
+@DelicateCoroutinesApi
 abstract class DispatcherBase : IDispatcher {
     final override val context by lazy {
         newSingleThreadContext(this::class.simpleName!!).also {
