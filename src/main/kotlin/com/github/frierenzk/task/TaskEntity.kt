@@ -12,10 +12,18 @@ import java.nio.channels.ClosedChannelException
 import java.nio.file.Path
 import java.security.InvalidParameterException
 import java.util.*
+import java.util.concurrent.locks.ReentrantReadWriteLock
+import kotlin.concurrent.read
+import kotlin.concurrent.write
 
 @DelicateCoroutinesApi
 class TaskEntity(val config: BuildConfig) {
-    var status: TaskStatus = TaskStatus.Waiting
+    private val _lock by lazy { ReentrantReadWriteLock() }
+    private var _status: TaskStatus = TaskStatus.Waiting
+    var status
+        set(value) = _lock.write { _status = value }
+        get() = _lock.read { _status }
+
     var push: ((String) -> Unit)? = null
     var finish: ((TaskStatus) -> Unit)? = null
     var updateConfig: ((IncompleteBuildConfig) -> Unit)? = null
