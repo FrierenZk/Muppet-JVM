@@ -19,7 +19,6 @@ class TaskEntity(val config: BuildConfig) {
     var push: ((String) -> Unit)? = null
     var finish: ((TaskStatus) -> Unit)? = null
     var updateConfig: ((IncompleteBuildConfig) -> Unit)? = null
-    val time = Calendar.getInstance().time
 
     private val scope by lazy { CoroutineScope(context) }
     private val context by lazy { newFixedThreadPoolContext(2, "${config.name}/main-${config["i"] ?: 0}") }
@@ -231,6 +230,7 @@ class TaskEntity(val config: BuildConfig) {
 
     private fun initTask() = scope.launch {
         status = TaskStatus.Working
+        config.extraParas["createTime"] = Calendar.getInstance().time
         try {
             if (config.getRemote() !is String) stream.send { updateRemote() }
             if (svn.info(config.getSource()).findLast { it.startsWith("URL: ") } is String) stream.send {
