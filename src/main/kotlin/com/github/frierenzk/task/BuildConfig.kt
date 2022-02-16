@@ -57,6 +57,9 @@ data class BuildConfig(
 
     fun getLocal() = extraParas["local"].let { if (it is String) "${getSource()}/$it" else getSource() }
 
+    fun getImage() =
+        extraParas["imageDir"].let { if (it is String) "${getLocal()}/$it" else "${getLocal()}/Project/images" }
+
     operator fun plus(other: BuildConfig): BuildConfig {
         return this + IncompleteBuildConfig(other)
     }

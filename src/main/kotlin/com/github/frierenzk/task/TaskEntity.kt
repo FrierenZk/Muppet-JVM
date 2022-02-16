@@ -122,7 +122,7 @@ class TaskEntity(val config: BuildConfig) {
 
             fun clean() {
                 try {
-                    val dir = Path.of(config.getLocal() + "/Project/images").toFile()
+                    val dir = Path.of(config.getImage()).toFile()
                     if (dir.exists() && dir.isDirectory)
                         dir.listFiles()?.filter { it.name.contains("tar.gz") }
                             ?.forEach { push?.invoke("Delete ${it.name}");it.delete() }
@@ -136,7 +136,7 @@ class TaskEntity(val config: BuildConfig) {
             }
 
             fun upload() {
-                val dir = Path.of(config.getLocal() + "/Project/images").toFile()
+                val dir = Path.of(config.getImage()).toFile()
                 if (dir.exists() && dir.isDirectory) {
                     val file = dir.listFiles()?.findLast { it.name.contains("tar.gz") }
                     if (file is File) {
