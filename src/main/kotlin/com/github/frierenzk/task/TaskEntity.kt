@@ -73,7 +73,7 @@ class TaskEntity(val config: BuildConfig) {
                     currentShell?.outBuffer?.useLines { lines ->
                         lines.forEach {
                             push?.invoke(it)
-                            if (it.contains("Authentication realm:")) currentShell?.writer?.write("654321\n")
+                            if (it.contains("Password for")) currentShell?.writer?.write("654321\n")
                         }
                     }
                 }
@@ -94,7 +94,7 @@ class TaskEntity(val config: BuildConfig) {
                     currentShell?.outBuffer?.useLines { lines ->
                         lines.forEach {
                             push?.invoke(it)
-                            if (it.contains("Authentication realm:")) currentShell?.writer?.write("654321\n")
+                            if (it.contains("Password for")) currentShell?.writer?.write("654321\n")
                         }
                     }
                 }
