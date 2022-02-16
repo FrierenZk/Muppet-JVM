@@ -15,6 +15,7 @@ import kotlin.system.exitProcess
 private val channel by lazy { Channel<Int>() }
 private val handlerCollections by lazy { HashSet<IDispatcher>() }
 
+@DelicateCoroutinesApi
 @ObsoleteCoroutinesApi
 private suspend fun preInit() = coroutineScope {
     launch { handlerCollections.add(ConfigCenter().apply { init() }) }
@@ -60,6 +61,7 @@ private fun postClean() {
     }
 }
 
+@DelicateCoroutinesApi
 @ObsoleteCoroutinesApi
 suspend fun main(): Unit = coroutineScope {
     try {
