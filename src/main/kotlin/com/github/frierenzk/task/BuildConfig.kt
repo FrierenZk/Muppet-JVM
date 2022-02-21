@@ -44,7 +44,7 @@ data class BuildConfig(
         var upload = extraParas["upload"].let { if (it is String) it else null } ?: "\${default}"
         mapOf(
             "default" to "$uploadUser@$uploadAddress:/volume1/version/$category/${projectDir ?: name}",
-            "base" to "$uploadUser@$uploadAddress:/volume1/version",
+            "base" to "$uploadUser@$uploadAddress:/",
             "version" to "$uploadUser@$uploadAddress:/volume1/version",
             "category" to category,
             "name" to name,
